@@ -1,0 +1,19 @@
+# build files
+build/
+*.o
+*.a
+*.out
+*.so
+*.d
+
+# editor cache
+.cache/
+compile_commands.json
+
+# debugging files
+vgcore.*
+
+# data directories
+data.txt
+datasets/
+
