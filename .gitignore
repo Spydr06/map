@@ -16,4 +16,5 @@ vgcore.*
 # data directories
 data.txt
 datasets/
+*.ini
 
