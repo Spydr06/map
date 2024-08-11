@@ -35,8 +35,14 @@ void RenderContext::draw_debug_info() {
     auto [min, max] = m_map->get_minmax_coord();
     ImGui::Text("coordinate system: (%f, %f) to (%f, %f)", min.x, min.y, max.x, max.y);
 
-    auto viewport = m_map->viewport_size();
+    auto viewport = m_viewport.vieport_size();
     ImGui::Text("viewport size: (%f %f)", viewport.x, viewport.y);
+
+    auto translation = m_viewport.get_translation();
+    ImGui::Text("translation: (%f %f)", translation.x, translation.y);
+
+    auto scale = m_viewport.get_scale();
+    ImGui::Text("scale: (%f %f)", scale.x, scale.y);
 
     ImGui::Separator();
 
@@ -48,17 +54,16 @@ void RenderContext::draw_debug_info() {
 void RenderContext::draw() {
     m_map_shader->use();
 
-    auto [min, max] = m_map->get_minmax_coord();
-
-    auto scale = glm::vec2(2.0) / (max - min);
-    glUniform2f(glGetUniformLocation(m_map_shader->id(), "u_Scale"), scale.x, scale.y);
-
-    auto translation = -min;
-    glUniform2f(glGetUniformLocation(m_map_shader->id(), "u_Translation"), translation.x, translation.y);
+    m_viewport.upload_uniforms(m_map_shader->id());
 
     for(auto& [_, way] : m_map->get_ways()) {
         way->draw_buffers();
     }
+}
+
+void Viewport::upload_uniforms(GLuint shader_id) {
+    glUniform2f(glGetUniformLocation(shader_id, "u_Scale"), m_scale.x, m_scale.y);
+    glUniform2f(glGetUniformLocation(shader_id, "u_Translation"), m_translation.x, m_translation.y);
 }
 
 static int load_shader(GLenum type, std::istream& input, std::optional<std::string>& err) {
