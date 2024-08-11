@@ -32,11 +32,32 @@ public:
     void draw_buffers();
 
     inline void add_node(Node node) {
+        increase_bbox(node.coord);
         m_nodes.push_back(node);
+    }
+    
+    inline auto get_minmax_coord() {
+        return std::make_pair(m_min_coord, m_max_coord);
+    }
+
+    inline auto min_coord() const {
+        return m_min_coord;
+    }
+
+    inline auto max_coord() const {
+        return m_max_coord;
     }
 
 private:
+    inline void increase_bbox(glm::vec2& coord) {
+        m_min_coord.x = std::min(m_min_coord.x, coord.x);
+        m_min_coord.y = std::min(m_min_coord.y, coord.y);
+        m_max_coord.x = std::max(m_max_coord.x, coord.x);
+        m_max_coord.y = std::max(m_max_coord.y, coord.y);
+    }
+
     std::vector<Node> m_nodes;
+    glm::vec2 m_min_coord, m_max_coord;
 
     GLuint m_vao = 0, m_vbo = 0;
 };

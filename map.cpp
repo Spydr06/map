@@ -24,6 +24,6 @@ void Way::create_buffers() {
 
 void Way::draw_buffers() {
     glBindVertexArray(m_vao);
-    glDrawArrays(GL_LINES, 0, m_nodes.size());
+    glDrawArrays(GL_LINE_STRIP, 0, m_nodes.size());
 }
 

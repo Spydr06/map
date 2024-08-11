@@ -49,8 +49,12 @@ void RenderContext::draw() {
     m_map_shader->use();
 
     auto [min, max] = m_map->get_minmax_coord();
-    glUniform2f(glGetUniformLocation(m_map_shader->id(), "u_MinViewport"), min.x, min.y);
-    glUniform2f(glGetUniformLocation(m_map_shader->id(), "u_MaxViewport"), max.x, max.y);
+
+    auto scale = glm::vec2(2.0) / (max - min);
+    glUniform2f(glGetUniformLocation(m_map_shader->id(), "u_Scale"), scale.x, scale.y);
+
+    auto translation = -min;
+    glUniform2f(glGetUniformLocation(m_map_shader->id(), "u_Translation"), translation.x, translation.y);
 
     for(auto& [_, way] : m_map->get_ways()) {
         way->draw_buffers();
