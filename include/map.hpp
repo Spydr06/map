@@ -1,8 +1,8 @@
 #pragma once
 
+#include "bbox.hpp"
 #include "viewport.hpp"
 
-#include <limits>
 #include <vector>
 #include <unordered_map>
 #include <memory>
@@ -15,11 +15,11 @@ struct Node {
     glm::vec2 coord;
 };
 
-class Way {
+class Way : public BBox {
 public:
     typedef uint64_t Id;
 
-    Way() : m_nodes(), m_min_coord(std::numeric_limits<float>::infinity()), m_max_coord(-std::numeric_limits<float>::infinity())
+    Way() : m_nodes() 
     {}
 
     ~Way() {
@@ -38,38 +38,19 @@ public:
         m_nodes.push_back(node);
     }
     
-    inline auto get_minmax_coord() {
-        return std::make_pair(m_min_coord, m_max_coord);
-    }
-
-    inline auto min_coord() const {
-        return m_min_coord;
-    }
-
-    inline auto max_coord() const {
-        return m_max_coord;
-    }
-
     inline bool in_viewport(Viewport& viewport) const {
         return m_min_coord.x < viewport.max_view().x && m_max_coord.x > viewport.min_view().x &&
             m_min_coord.y < viewport.max_view().y && m_max_coord.y > viewport.min_view().y;
     }
 
 private:
-    inline void increase_bbox(glm::vec2& coord) {
-        m_min_coord.x = std::min(m_min_coord.x, coord.x);
-        m_min_coord.y = std::min(m_min_coord.y, coord.y);
-        m_max_coord.x = std::max(m_max_coord.x, coord.x);
-        m_max_coord.y = std::max(m_max_coord.y, coord.y);
-    }
 
     std::vector<Node> m_nodes;
-    glm::vec2 m_min_coord, m_max_coord;
 
     GLuint m_vao = 0, m_vbo = 0;
 };
 
-class Map {
+class Map : public BBox {
 public:
     Map() : m_ways() {
     }
@@ -84,29 +65,11 @@ public:
         m_max_coord = max;
     }
 
-    inline auto get_minmax_coord() {
-        return std::make_pair(m_min_coord, m_max_coord);
-    }
-
-    inline auto min_coord() const {
-        return m_min_coord;
-    }
-
-    inline auto max_coord() const {
-        return m_max_coord;
-    }
-    
-    inline auto viewport_size() const {
-        return m_max_coord - m_min_coord;
-    }
-
     inline auto& get_ways() {
         return m_ways;
     }
     
-    std::unordered_map<Way::Id, std::unique_ptr<Way>> m_ways;
-
 private:
-    glm::vec2 m_min_coord, m_max_coord;
+    std::unordered_map<Way::Id, std::unique_ptr<Way>> m_ways;
 };
 

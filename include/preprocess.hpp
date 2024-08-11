@@ -1,17 +1,16 @@
 #pragma once
 
+#include "bbox.hpp"
 #include "map.hpp"
 
-#include <limits>
 #include <memory>
 #include <string>
 #include <utility>
 
-class NodeCache {
+class NodeCache : public BBox {
 public:
     NodeCache() 
-        : m_nodes({}), 
-        m_min_coord(std::numeric_limits<float>::infinity()), m_max_coord(-std::numeric_limits<float>::infinity())
+        : m_nodes({})
     {}
 
     inline void add_node(Node::Id id, Node node) {
@@ -27,10 +26,6 @@ public:
         return m_nodes;
     }
 
-    inline auto get_minmax_coord() {
-        return std::make_pair(m_min_coord, m_max_coord);
-    }
-
 private:
     inline void increase_bbox(glm::vec2& coord) {
         m_min_coord.x = std::min(m_min_coord.x, coord.x);
@@ -40,7 +35,6 @@ private:
     }
 
     std::unordered_map<Node::Id, Node> m_nodes;
-    glm::vec2 m_min_coord, m_max_coord;
 };
 
 class WayCache {
