@@ -47,6 +47,7 @@ void RenderContext::draw_debug_info() {
     ImGui::Separator();
 
     ImGui::Text("num ways: %zu\n", m_map->get_ways().size());
+    ImGui::Text("rendered: %zu\n", m_num_rendered);
 
     ImGui::End();
 }
@@ -56,8 +57,12 @@ void RenderContext::draw() {
 
     m_viewport.upload_uniforms(m_map_shader->id(), m_input_state.window_size);
 
+    m_num_rendered = 0;
     for(auto& [_, way] : m_map->get_ways()) {
-        way->draw_buffers();
+        if(way->in_viewport(m_viewport)) {
+            way->draw_buffers();
+            m_num_rendered++;
+        }
     }
 }
 

@@ -1,6 +1,7 @@
 #include "preprocess.hpp"
 
 #include <cassert>
+#include <cmath>
 #include <fstream>
 #include <iostream>
 #include <cstring>
@@ -8,6 +9,10 @@
 #include <expat.h>
 #include <memory>
 #include <string>
+
+static inline Node map_project(float lon, float lat) {
+    return Node{{lon * std::cos(lat / 180.0 * M_PI), lat}};
+}
 
 static void XMLCALL enter_element(void* user_data, const XML_Char* name, const XML_Char** atts) {
     auto data = static_cast<PreData*>(user_data);
@@ -24,7 +29,7 @@ static void XMLCALL enter_element(void* user_data, const XML_Char* name, const X
         }
         
         assert(id && lat && lon);
-        data->m_node_cache->add_node(std::stoull(id), Node{{std::stof(lon), std::stof(lat)}});
+        data->m_node_cache->add_node(std::stoull(id), map_project(std::stof(lon), std::stof(lat)));
     }
     else if(std::memcmp(name, "way", 3) == 0) {
         const XML_Char* id = nullptr;

@@ -1,6 +1,8 @@
 #pragma once
 
-#include <cstdint>
+#include "viewport.hpp"
+
+#include <limits>
 #include <vector>
 #include <unordered_map>
 #include <memory>
@@ -17,7 +19,7 @@ class Way {
 public:
     typedef uint64_t Id;
 
-    Way() : m_nodes()
+    Way() : m_nodes(), m_min_coord(std::numeric_limits<float>::infinity()), m_max_coord(-std::numeric_limits<float>::infinity())
     {}
 
     ~Way() {
@@ -46,6 +48,11 @@ public:
 
     inline auto max_coord() const {
         return m_max_coord;
+    }
+
+    inline bool in_viewport(Viewport& viewport) const {
+        return m_min_coord.x < viewport.max_view().x && m_max_coord.x > viewport.min_view().x &&
+            m_min_coord.y < viewport.max_view().y && m_max_coord.y > viewport.min_view().y;
     }
 
 private:
@@ -102,5 +109,4 @@ public:
 private:
     glm::vec2 m_min_coord, m_max_coord;
 };
-
 
