@@ -1,13 +1,14 @@
 #include "rendercontext.hpp"
+#include "imgui.h"
 
 #include <GL/glew.h>
 
 #include <cassert>
 #include <cstdlib>
 #include <fstream>
+#include <memory>
 #include <sstream>
 #include <iostream>
-#include <vector>
 
 void RenderContext::init() {
     auto vertex_source = std::ifstream("shaders/map_vertex.glsl");
@@ -23,46 +24,37 @@ void RenderContext::init() {
         std::exit(1);
     }
 
-    std::vector<float> vertices{};
-    vertices.reserve(m_map->get_nodes().size() * 2);
-    
-    for(auto& node : m_map->get_nodes()) {
-        vertices.push_back(node.second.coord.x);
-        vertices.push_back(node.second.coord.y);
+    for(auto& [_, way] : m_map->get_ways()) {
+        way->create_buffers(); 
     }
+}
 
-    std::cout << vertices.size() << " points" << std::endl;
-    std::cout << m_map->min_coord().x << " " << m_map->min_coord().y << " to " << m_map->max_coord().x << " " << m_map->max_coord().y << std::endl;
-    std::cout << m_map->viewport_size().x << " " << m_map->viewport_size().y << std::endl;
+void RenderContext::draw_debug_info() {
+    ImGui::Begin("Debug info");
 
-    glGenBuffers(1, &m_map_vbo);
-    assert(m_map_vbo);
+    auto [min, max] = m_map->get_minmax_coord();
+    ImGui::Text("coordinate system: (%f, %f) to (%f, %f)", min.x, min.y, max.x, max.y);
 
-    glBindBuffer(GL_ARRAY_BUFFER, m_map_vbo);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), &vertices[0], GL_STATIC_DRAW);
+    auto viewport = m_map->viewport_size();
+    ImGui::Text("viewport size: (%f %f)", viewport.x, viewport.y);
 
-    glGenVertexArrays(1, &m_map_vao);
-    assert(m_map_vao != 0);
+    ImGui::Separator();
 
-    glBindVertexArray(m_map_vao);
-    glEnableVertexAttribArray(0);
-    glVertexAttribPointer(0, 2, GL_FLOAT, false, sizeof(float) * 2, 0);
+    ImGui::Text("num ways: %zu\n", m_map->get_ways().size());
+
+    ImGui::End();
 }
 
 void RenderContext::draw() {
     m_map_shader->use();
 
-    glPolygonMode(GL_FRONT_AND_BACK, GL_POINT);
+    auto [min, max] = m_map->get_minmax_coord();
+    glUniform2f(glGetUniformLocation(m_map_shader->id(), "u_MinViewport"), min.x, min.y);
+    glUniform2f(glGetUniformLocation(m_map_shader->id(), "u_MaxViewport"), max.x, max.y);
 
-    int min_viewport_loc = glGetUniformLocation(m_map_shader->id(), "u_MinViewport");
-    glUniform2f(min_viewport_loc, m_map->min_coord().x, m_map->min_coord().y);
-    
-    int max_viewport_loc = glGetUniformLocation(m_map_shader->id(), "u_MaxViewport");
-    glUniform2f(max_viewport_loc, m_map->max_coord().x, m_map->max_coord().x);
-
-    glBindVertexArray(m_map_vao);
-    glBindBuffer(m_map_vbo, GL_ARRAY_BUFFER);
-    glDrawArrays(GL_POINTS, 0, m_map->get_nodes().size() * 2);
+    for(auto& [_, way] : m_map->get_ways()) {
+        way->draw_buffers();
+    }
 }
 
 static int load_shader(GLenum type, std::istream& input, std::optional<std::string>& err) {

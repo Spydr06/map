@@ -1,5 +1,4 @@
 #include <iostream>
-#include <fstream>
 #include <chrono>
 #include <vector>
 #include <memory>
@@ -22,19 +21,10 @@ auto main(int argc, char** argv) -> int {
 
     auto map = std::make_shared<Map>();
 
-    auto data_path = "data.txt";
-    auto data_file = std::ifstream(data_path);
-    if(data_file.good()) {
-        std::cout << "Loading data..." << std::endl;
-        load_preprocessed_data(data_file, map);
-        std::cout << "done." << std::endl;
-    }
-    else {
-        std::cout << "Preprocessing data..." << std::endl;
-        if(int err = preprocess_data(argv[1], data_path, map)) {
-            return err;
-        };
-    }
+    std::cout << "Preprocessing data..." << std::endl;
+    if(int err = preprocess_data(argv[1], map)) {
+        return err;
+    };
 
     if(!glfwInit()) {
         std::cerr << "Error initializing GLFW" << std::endl;
@@ -61,6 +51,8 @@ auto main(int argc, char** argv) -> int {
     std::chrono::steady_clock::duration frame_time;
 
     glfwMakeContextCurrent(window);
+    
+    glfwSwapInterval(0);
 
     if(GLenum err = glewInit()) {
         std::cout << "OpenGL error: " << glewGetErrorString(err) << std::endl;
@@ -75,7 +67,7 @@ auto main(int argc, char** argv) -> int {
     ImGui_ImplOpenGL3_Init("#version 450 core");
     
     auto& io = ImGui::GetIO();
-    io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
+    // io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
     // io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
 
     auto context = RenderContext(map);
@@ -91,17 +83,15 @@ auto main(int argc, char** argv) -> int {
         }
         
         glClearColor(0.0, 0.0, 0.0, 1.0);
-        glClear(GL_COLOR_BUFFER_BIT);
-        
-        context.draw();
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); 
 
+        context.draw();
+        
         ImGui_ImplOpenGL3_NewFrame();
         ImGui_ImplGlfw_NewFrame();
         ImGui::NewFrame();
 
-        ImGui::DockSpaceOverViewport();
-
-        ImGui::ShowDemoWindow(nullptr);
+        context.draw_debug_info();
 
         ImGui::Render();
 
@@ -114,7 +104,7 @@ auto main(int argc, char** argv) -> int {
             ImGui::RenderPlatformWindowsDefault();
             glfwMakeContextCurrent(backup_context);
         }
-
+        
         glfwSwapBuffers(window);
         glfwPollEvents();
 

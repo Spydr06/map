@@ -20,14 +20,13 @@ public:
     }
 
     void draw();
+    void draw_debug_info();
 
 private:
     void init();
 
     std::shared_ptr<Map> m_map;
     std::unique_ptr<Shader> m_map_shader;
-
-    GLuint m_map_vao, m_map_vbo;
 };
 
 class Shader {
