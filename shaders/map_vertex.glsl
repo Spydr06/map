@@ -7,7 +7,7 @@ uniform vec2 u_Translation;
 
 void main() {
     gl_Position = vec4(
-        ((a_Position + u_Translation) * u_Scale) - vec2(1), 
+        ((a_Position + u_Translation) * u_Scale), 
         1.0,
         1.0
     );

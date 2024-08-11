@@ -76,8 +76,8 @@ auto main(int argc, char** argv) -> int {
     context = std::make_unique<RenderContext>(map, window_size);
 
     glfwSetScrollCallback(window, [](GLFWwindow*, [[maybe_unused]] double xoffset, double yoffset){
-        auto& scale = context->get_viewport().get_scale();
-        scale += scale * glm::vec2(yoffset * 0.1);
+        auto& scale = context->get_viewport().get_scale_factor();
+        scale += scale * yoffset * 0.1;
     });
 
     glfwSetMouseButtonCallback(window, [](GLFWwindow*, int button, int action, [[maybe_unused]] int mods) {
@@ -128,6 +128,9 @@ auto main(int argc, char** argv) -> int {
             ImGui_ImplGlfw_Sleep(10);
             continue;
         }
+
+        auto& window_size = context->get_input_state().window_size;
+        glViewport(0, 0, window_size.x, window_size.y);
         
         glClearColor(0.0, 0.0, 0.0, 1.0);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); 

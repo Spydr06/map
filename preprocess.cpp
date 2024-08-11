@@ -59,14 +59,14 @@ static void XMLCALL leave_element(void* user_data, const XML_Char* name) {
         assert(data->m_current_way.has_current());
 
         // only handle streets for now
-        if(data->m_current_way.has_tag("highway")) {
+//        if(data->m_current_way.has_tag("highway")) {
             auto [way_id, way] = data->m_current_way.reset();
 
             data->m_map->add_way(way_id, std::move(way));
-        }
-        else {
-            data->m_current_way.discard();
-        }
+    //    }
+      //  else {
+        //    data->m_current_way.discard();
+       // }
     }
 }
 
