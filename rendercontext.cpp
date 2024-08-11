@@ -24,9 +24,7 @@ void RenderContext::init() {
         std::exit(1);
     }
 
-    for(auto& [_, way] : m_map->get_ways()) {
-        way->create_buffers(); 
-    }
+    m_bvh_max_depth = m_map->get_max_bvh_depth();
 }
 
 void RenderContext::draw_debug_info() {
@@ -46,8 +44,7 @@ void RenderContext::draw_debug_info() {
 
     ImGui::Separator();
 
-    ImGui::Text("num ways: %zu\n", m_map->get_ways().size());
-    ImGui::Text("rendered: %zu\n", m_num_rendered);
+    ImGui::SliderInt("BVH drawing depth", &m_bvh_max_depth, 0, 20);
 
     ImGui::End();
 }
@@ -57,13 +54,8 @@ void RenderContext::draw() {
 
     m_viewport.upload_uniforms(m_map_shader->id(), m_input_state.window_size);
 
-    m_num_rendered = 0;
-    for(auto& [_, way] : m_map->get_ways()) {
-        if(way->in_viewport(m_viewport)) {
-            way->draw_buffers();
-            m_num_rendered++;
-        }
-    }
+    auto viewport = m_viewport.viewport_bbox();
+    m_map->draw(viewport, m_bvh_max_depth);
 }
 
 void Viewport::upload_uniforms(GLuint shader_id, glm::vec2 window_size) {

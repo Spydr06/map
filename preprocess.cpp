@@ -10,8 +10,8 @@
 #include <memory>
 #include <string>
 
-static inline Node map_project(float lon, float lat) {
-    return Node{{lon * std::cos(lat / 180.0 * M_PI), lat}};
+static inline glm::vec2 map_project(float lon, float lat) {
+    return glm::vec2(lon * std::cos(lat / 180.0 * M_PI), lat);
 }
 
 static void XMLCALL enter_element(void* user_data, const XML_Char* name, const XML_Char** atts) {
@@ -29,7 +29,7 @@ static void XMLCALL enter_element(void* user_data, const XML_Char* name, const X
         }
         
         assert(id && lat && lon);
-        data->m_node_cache->add_node(std::stoull(id), map_project(std::stof(lon), std::stof(lat)));
+        data->m_node_cache->add_node(std::stoull(id), Node{map_project(std::stof(lon), std::stof(lat))});
     }
     else if(std::memcmp(name, "way", 3) == 0) {
         const XML_Char* id = nullptr;
@@ -55,6 +55,25 @@ static void XMLCALL enter_element(void* user_data, const XML_Char* name, const X
         assert(atts[4] == nullptr && atts[0][0] == 'k' && atts[2][0] == 'v');
         data->m_current_way.add_tag(atts[1], atts[3]);
     }
+    else if(std::memcmp(name, "bounds", 5) == 0) {
+        const XML_Char *min_lon = nullptr, *max_lon = nullptr, *min_lat = nullptr, *max_lat = nullptr;
+        for(int i = 0; atts[i]; i += 2) {
+            if(std::memcmp(atts[i], "minlon", 6) == 0)
+                min_lon = atts[i + 1];
+            else if(std::memcmp(atts[i], "maxlon", 6) == 0)
+                max_lon = atts[i + 1];
+            else if(std::memcmp(atts[i], "minlat", 6) == 0)
+                min_lat = atts[i + 1];
+            else if(std::memcmp(atts[i], "maxlat", 6) == 0)
+                max_lat = atts[i + 1];
+        }
+
+        assert(min_lon && max_lon && min_lat && max_lat);
+        auto min = map_project(std::stof(min_lon), std::stof(min_lat));
+        auto max = map_project(std::stof(max_lon), std::stof(max_lat));
+
+        data->m_map->init_bvh(std::make_pair(min, max), 16);
+    }
 }
 
 static void XMLCALL leave_element(void* user_data, const XML_Char* name) {
@@ -67,6 +86,8 @@ static void XMLCALL leave_element(void* user_data, const XML_Char* name) {
 //        if(data->m_current_way.has_tag("highway")) {
             auto [way_id, way] = data->m_current_way.reset();
 
+            way->create_buffers();
+            
             data->m_map->add_way(way_id, std::move(way));
     //    }
       //  else {
@@ -124,8 +145,6 @@ auto preprocess_data(const char* xml_path, std::shared_ptr<Map> map) -> int {
 cleanup:
     XML_ParserFree(parser);
     input.close();
-
-    map->set_minmax_coord(data.m_node_cache->get_minmax_coord());
 
     return ret;
 }

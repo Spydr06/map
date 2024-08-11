@@ -21,13 +21,6 @@ auto main(int argc, char** argv) -> int {
         return 1;
     }
 
-    auto map = std::make_shared<Map>();
-
-    std::cout << "Preprocessing data..." << std::endl;
-    if(int err = preprocess_data(argv[1], map)) {
-        return err;
-    };
-
     if(!glfwInit()) {
         std::cerr << "Error initializing GLFW" << std::endl;
         return 1;
@@ -62,6 +55,13 @@ auto main(int argc, char** argv) -> int {
         glfwTerminate();
         return 1;
     }
+
+    auto map = std::make_shared<Map>();
+
+    std::cout << "Preprocessing data..." << std::endl;
+    if(int err = preprocess_data(argv[1], map)) {
+        return err;
+    };
 
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();

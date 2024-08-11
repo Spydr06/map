@@ -6,6 +6,8 @@
 #include <GL/glew.h>
 #include <glm/vec2.hpp>
 
+#include "bbox.hpp"
+
 class Viewport {
 public:
     Viewport(std::pair<glm::vec2, glm::vec2> minmax_coords) 
@@ -54,6 +56,10 @@ public:
 
     inline auto max_view() const {
         return m_max_view;
+    }
+
+    inline BBox viewport_bbox() const {
+        return BBox(m_min_view, m_max_view);
     }
 
 private:

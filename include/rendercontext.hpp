@@ -4,7 +4,6 @@
 #include "inputstate.hpp"
 #include "viewport.hpp"
 
-#include <cstddef>
 #include <istream>
 #include <memory>
 #include <optional>
@@ -42,7 +41,7 @@ private:
     Viewport m_viewport;
     InputState m_input_state;
 
-    std::size_t m_num_rendered;
+    int m_bvh_max_depth;
 };
 
 class Shader {
