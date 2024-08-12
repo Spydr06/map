@@ -1,19 +1,79 @@
 #pragma once
 
 #include "viewport.hpp"
+#include "flags.hpp"
 
 #include <vector>
+#include <unordered_map>
+#include <string>
+
+#include <GL/glew.h>
+
+struct Metadata {
+    enum Classification : GLbyte {
+        UNKNOWN = 0,
+        HIGHWAY_MOTORWAY,
+        HIGHWAY_TRUNK,
+        HIGHWAY_PRIMARY,
+        HIGHWAY_SECONDARY,
+        HIGHWAY_TERTIARY,
+        HIGHWAY_UNCLASSIFIED,
+        HIGHWAY_RESIDENTIAL,
+        HIGHWAY_LIVING_STREET,
+        HIGHWAY_SERVICE,
+        HIGHWAY_PEDESTRIAN,
+        HIGHWAY_TRACK,
+        HIGHWAY_BUSWAY,
+        HIGHWAY_FOOTWAY,
+        HIGHWAY_CYCLEWAY,
+
+        FOOTWAY_SIDEWALK,
+        FOOTWAY_CROSSING,
+
+        RAILWAY
+    };
+
+    Metadata(std::unordered_map<std::string, std::string>& tags);
+    Metadata()
+        : m_classification(Classification::UNKNOWN)
+    {}
+
+    inline bool is_footway() {
+        return m_classification == FOOTWAY_SIDEWALK || m_classification == FOOTWAY_CROSSING || m_classification == HIGHWAY_FOOTWAY;
+    }
+
+    inline bool is_building() {
+        return m_classification == UNKNOWN; // TODO
+    }
+
+    Classification m_classification;
+    GLbyte m_line_width = 1;
+
+    GLshort __padding;
+};
+
+static_assert(sizeof(Metadata) == sizeof(GLuint));
 
 struct Node {
     typedef uint64_t Id;
-    glm::vec2 coord;
+
+    Node(glm::vec2 coord)
+        : m_coord(coord), m_metadata()
+    {}
+    
+    Node(glm::vec2 coord, std::unordered_map<std::string, std::string>& tags)
+        : m_coord(coord), m_metadata(tags)
+    {}
+
+    glm::vec2 m_coord;
+    Metadata m_metadata;
 };
 
 class Way : public BBox {
 public:
     typedef uint64_t Id;
 
-    Way() : m_nodes() 
+    Way() : m_nodes(), m_metadata() 
     {}
 
     ~Way() {
@@ -25,15 +85,24 @@ public:
 
     void create_buffers();
 
-    void draw_buffers();
+    void draw_buffers(RenderFlags flags);
 
     inline void add_node(Node node) {
-        increase_bbox(node.coord);
+        increase_bbox(node.m_coord);
         m_nodes.push_back(node);
+    }
+
+    inline auto& get_nodes() {
+        return m_nodes;
+    }
+
+    inline void set_metadata(Metadata metadata) {
+        m_metadata = metadata;
     }
     
 private:
     std::vector<Node> m_nodes;
+    Metadata m_metadata;
 
     GLuint m_vao = 0, m_vbo = 0;
 };

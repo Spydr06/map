@@ -15,12 +15,16 @@ public:
     {}
 
     inline void add_node(Node::Id id, Node node) {
-        increase_bbox(node.coord);
+        increase_bbox(node.m_coord);
         this->m_nodes.insert({id, node});
     }
 
     inline auto lookup(Node::Id id) -> Node& {
-        return m_nodes[id];
+        auto found = m_nodes.find(id);
+        if(found == m_nodes.end())
+            assert(false);
+        else
+            return found->second;
     }
 
     inline auto& get_nodes() {
@@ -45,7 +49,6 @@ public:
     {}
 
     inline void make_current(Way::Id id) {
-
         m_way = std::make_unique<Way>();
         m_way_id = id;
     }
@@ -81,6 +84,10 @@ public:
 
     inline bool has_tag(std::string tag_key) {
         return m_tags.find(tag_key) == m_tags.end();
+    }
+
+    inline Metadata metadata() {
+        return Metadata(m_tags);
     }
 
 private:

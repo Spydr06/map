@@ -50,19 +50,19 @@ void BVH::add_way(std::unique_ptr<Way> way) {
         assert(false && "unreachable");
 }
 
-void BVH::draw(BBox& viewport, size_t max_depth, size_t depth)
+void BVH::draw(BBox& viewport, RenderFlags flags, size_t max_depth, size_t depth)
 {
     if(depth >= max_depth)
         return;
     
     for(auto& way : m_ways) {
-        way->draw_buffers();
+        way->draw_buffers(flags);
     }
 
     auto& [ a, b ] = m_children;
     if(a != nullptr && a->intersects(viewport))
-        a->draw(viewport, max_depth, depth + 1);
+        a->draw(viewport, flags, max_depth, depth + 1);
     if(b != nullptr && b->intersects(viewport))
-        b->draw(viewport, max_depth, depth + 1);
+        b->draw(viewport, flags, max_depth, depth + 1);
 }
 

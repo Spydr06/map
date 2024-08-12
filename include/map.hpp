@@ -8,6 +8,7 @@
 #include <GL/glew.h>
 
 #include "bvh.hpp"
+#include "flags.hpp"
 
 class Map : public BBox {
 public:
@@ -29,8 +30,8 @@ public:
         m_bvh->add_way(std::move(way));
     }
 
-    inline void draw(BBox& viewport, size_t max_depth) {
-        m_bvh->draw(viewport, max_depth, 0);
+    inline void draw(BBox& viewport, RenderFlags flags, size_t max_depth) {
+        m_bvh->draw(viewport, flags, max_depth, 0);
     }
 
     inline auto get_max_bvh_depth() const -> std::size_t {

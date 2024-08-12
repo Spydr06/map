@@ -29,7 +29,7 @@ static void XMLCALL enter_element(void* user_data, const XML_Char* name, const X
         }
         
         assert(id && lat && lon);
-        data->m_node_cache->add_node(std::stoull(id), Node{map_project(std::stof(lon), std::stof(lat))});
+        data->m_node_cache->add_node(std::stoull(id), Node(map_project(std::stof(lon), std::stof(lat))));
     }
     else if(std::memcmp(name, "way", 3) == 0) {
         const XML_Char* id = nullptr;
@@ -89,8 +89,14 @@ static void XMLCALL leave_element(void* user_data, const XML_Char* name) {
 
         // only handle streets for now
         // if(data->m_current_way.has_tag("highway")) {
+            auto metadata = data->m_current_way.metadata();
             auto [way_id, way] = data->m_current_way.reset();
 
+            for(auto& node : way->get_nodes()) {
+                node.m_metadata = metadata;
+            }
+
+            way->set_metadata(metadata);
             way->create_buffers();
             
             data->m_map->add_way(std::move(way));

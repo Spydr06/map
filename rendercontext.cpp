@@ -1,4 +1,5 @@
 #include "rendercontext.hpp"
+#include "flags.hpp"
 #include "imgui.h"
 
 #include <GL/glew.h>
@@ -40,7 +41,7 @@ void RenderContext::draw_debug_info() {
     ImGui::Text("translation: (%f %f)", translation.x, translation.y);
 
     auto scale = m_viewport.get_scale(m_input_state.window_size);
-    ImGui::Text("scale: (%f %f)", scale.x, scale.y);
+    ImGui::Text("scale: (%f %f) (x%f)", scale.x, scale.y, m_viewport.get_scale_factor());
 
     ImGui::Separator();
 
@@ -55,7 +56,16 @@ void RenderContext::draw() {
     m_viewport.upload_uniforms(m_map_shader->id(), m_input_state.window_size);
 
     auto viewport = m_viewport.viewport_bbox();
-    m_map->draw(viewport, m_bvh_max_depth);
+
+    auto scale = m_viewport.get_scale_factor();
+    int flags = RenderFlags::DEFAULT;
+
+    if(scale > 3.0f)
+        flags |= RenderFlags::FOOTWAYS;
+    if(scale > 4.0f)
+        flags |= RenderFlags::BUILDINGS;
+
+    m_map->draw(viewport, static_cast<RenderFlags>(flags), m_bvh_max_depth);
 }
 
 void Viewport::upload_uniforms(GLuint shader_id, glm::vec2 window_size) {
