@@ -3,7 +3,7 @@
 BVH::BVH(std::pair<glm::vec2, glm::vec2> minmax_coords, size_t max_depth, size_t depth)
         : BBox(minmax_coords), m_children(std::make_pair(nullptr, nullptr)), m_ways()
 {
-    if(depth >= max_depth)
+    if(depth + 1 >= max_depth)
         return;
 
     glm::vec2 size = bbox_size();
@@ -29,11 +29,11 @@ BVH::BVH(std::pair<glm::vec2, glm::vec2> minmax_coords, size_t max_depth, size_t
     }
 }
 
-void BVH::add_way(Way::Id id, std::unique_ptr<Way> way) {
+void BVH::add_way(std::unique_ptr<Way> way) {
     auto& [ a, b ] = m_children;
 
     if(!a || !b) {
-        m_ways.insert({id, std::move(way)});
+        m_ways.push_back(std::move(way));
         return;
     }
 
@@ -41,11 +41,11 @@ void BVH::add_way(Way::Id id, std::unique_ptr<Way> way) {
     bool in_b = way->intersects(*b);
 
     if(in_a == in_b)
-        m_ways.insert({id, std::move(way)});
+        m_ways.push_back(std::move(way));
     else if(in_a)
-        a->add_way(id, std::move(way));
+        a->add_way(std::move(way));
     else if(in_b)
-        b->add_way(id, std::move(way));
+        b->add_way(std::move(way));
     else
         assert(false && "unreachable");
 }
@@ -55,7 +55,7 @@ void BVH::draw(BBox& viewport, size_t max_depth, size_t depth)
     if(depth >= max_depth)
         return;
     
-    for(auto& [_, way] : m_ways) {
+    for(auto& way : m_ways) {
         way->draw_buffers();
     }
 

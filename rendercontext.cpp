@@ -44,7 +44,7 @@ void RenderContext::draw_debug_info() {
 
     ImGui::Separator();
 
-    ImGui::SliderInt("BVH drawing depth", &m_bvh_max_depth, 0, 20);
+    ImGui::SliderInt("BVH drawing depth", &m_bvh_max_depth, 0, m_map->get_max_bvh_depth());
 
     ImGui::End();
 }

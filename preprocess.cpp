@@ -69,8 +69,13 @@ static void XMLCALL enter_element(void* user_data, const XML_Char* name, const X
         }
 
         assert(min_lon && max_lon && min_lat && max_lat);
-        auto min = map_project(std::stof(min_lon), std::stof(min_lat));
-        auto max = map_project(std::stof(max_lon), std::stof(max_lat));
+        auto min_a = map_project(std::stof(min_lon), std::stof(min_lat));
+        auto min_b = map_project(std::stof(min_lon), std::stof(max_lat));
+        glm::vec2 min(std::min(min_a.x, min_b.x), min_a.y);
+
+        auto max_a = map_project(std::stof(max_lon), std::stof(max_lat));
+        auto max_b = map_project(std::stof(max_lon), std::stof(min_lat));
+        glm::vec2 max(std::max(max_a.x, max_b.x), max_a.y);
 
         data->m_map->init_bvh(std::make_pair(min, max), 16);
     }
@@ -83,16 +88,16 @@ static void XMLCALL leave_element(void* user_data, const XML_Char* name) {
         assert(data->m_current_way.has_current());
 
         // only handle streets for now
-//        if(data->m_current_way.has_tag("highway")) {
+        // if(data->m_current_way.has_tag("highway")) {
             auto [way_id, way] = data->m_current_way.reset();
 
             way->create_buffers();
             
-            data->m_map->add_way(way_id, std::move(way));
-    //    }
-      //  else {
+            data->m_map->add_way(std::move(way));
+        // }
+        // else {
         //    data->m_current_way.discard();
-       // }
+        // }
     }
 }
 

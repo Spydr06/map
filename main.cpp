@@ -9,6 +9,7 @@
 #include "timer.hpp"
 
 #include <GLFW/glfw3.h>
+
 #include <imgui.h>
 #include <backends/imgui_impl_glfw.h>
 #include <backends/imgui_impl_opengl3.h>
@@ -134,6 +135,11 @@ auto main(int argc, char** argv) -> int {
         
         glClearColor(0.0, 0.0, 0.0, 1.0);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); 
+
+        glEnable(GL_BLEND);
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+        glEnable(GL_LINE_SMOOTH);
 
         context->draw();
         

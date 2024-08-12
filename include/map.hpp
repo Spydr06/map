@@ -24,9 +24,9 @@ public:
         m_bvh = std::make_unique<BVH>(minmax_coords, max_depth, 0);
     }
 
-    inline void add_way(Way::Id id, std::unique_ptr<Way> way) {
+    inline void add_way(std::unique_ptr<Way> way) {
         assert(m_bvh);
-        m_bvh->add_way(id, std::move(way));
+        m_bvh->add_way(std::move(way));
     }
 
     inline void draw(BBox& viewport, size_t max_depth) {

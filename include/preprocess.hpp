@@ -6,6 +6,7 @@
 #include <memory>
 #include <string>
 #include <utility>
+#include <unordered_map>
 
 class NodeCache : public BBox {
 public:
