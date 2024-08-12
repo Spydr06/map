@@ -67,9 +67,12 @@ Metadata::Metadata(std::unordered_map<std::string, std::string>& tags) {
     }
 
     auto railway = tags.find("railway");
-    if(railway != tags.end()) {
+    if(railway != tags.end())
         m_classification = Metadata::Classification::RAILWAY;
-    }
+
+    auto waterway = tags.find("waterway");
+    if(waterway != tags.end())
+        m_classification = Metadata::Classification::WATERWAY;
 }
 
 void Way::create_buffers() {

@@ -30,7 +30,8 @@ struct Metadata {
         FOOTWAY_SIDEWALK,
         FOOTWAY_CROSSING,
 
-        RAILWAY
+        RAILWAY,
+        WATERWAY
     };
 
     Metadata(std::unordered_map<std::string, std::string>& tags);
