@@ -38,12 +38,16 @@ struct Metadata {
         : m_classification(Classification::UNKNOWN)
     {}
 
-    inline bool is_footway() {
+    inline bool is_footway() const {
         return m_classification == FOOTWAY_SIDEWALK || m_classification == FOOTWAY_CROSSING || m_classification == HIGHWAY_FOOTWAY;
     }
 
-    inline bool is_building() {
+    inline bool is_building() const {
         return m_classification == UNKNOWN; // TODO
+    }
+
+    inline bool is_track() const {
+        return m_classification == HIGHWAY_TRACK;
     }
 
     Classification m_classification;

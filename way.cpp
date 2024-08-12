@@ -99,6 +99,9 @@ void Way::draw_buffers(RenderFlags flags) {
     if(!(flags & RenderFlags::BUILDINGS) && m_metadata.is_building())
         return;
 
+    if(!(flags & RenderFlags::TRACKS) && m_metadata.is_track())
+        return;
+
     glBindVertexArray(m_vao);
     glLineWidth(m_metadata.m_line_width);
     glDrawArrays(GL_LINE_STRIP, 0, m_nodes.size());

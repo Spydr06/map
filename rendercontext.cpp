@@ -60,6 +60,8 @@ void RenderContext::draw() {
     auto scale = m_viewport.get_scale_factor();
     int flags = RenderFlags::DEFAULT;
 
+    if(scale > 1.2f)
+        flags |= RenderFlags::TRACKS;
     if(scale > 3.0f)
         flags |= RenderFlags::FOOTWAYS;
     if(scale > 4.0f)
