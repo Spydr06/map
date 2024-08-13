@@ -45,6 +45,11 @@ public:
             m_min_coord.y < other.m_max_coord.y && m_max_coord.y > other.m_min_coord.y;
     }
 
+    inline bool contains(glm::vec2 coord) const {
+        return coord.x > m_min_coord.x && coord.x < m_max_coord.x 
+            && coord.y > m_min_coord.y && coord.y < m_max_coord.y;
+    }
+
 protected:
     inline void increase_bbox(glm::vec2& coord) {
         m_min_coord.x = std::min(m_min_coord.x, coord.x);

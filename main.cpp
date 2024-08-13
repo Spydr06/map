@@ -14,6 +14,8 @@
 #include <backends/imgui_impl_glfw.h>
 #include <backends/imgui_impl_opengl3.h>
 
+constexpr glm::vec2 window_size = glm::vec2(1366, 768);
+
 std::unique_ptr<RenderContext> context = nullptr;
 
 auto main(int argc, char** argv) -> int {
@@ -30,7 +32,6 @@ auto main(int argc, char** argv) -> int {
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 5);
 
-    glm::vec2 window_size(1366, 768);
     GLFWwindow* window = glfwCreateWindow(window_size.x, window_size.y, "Map", nullptr, nullptr);
     if(!window) {
         std::cerr << "Error creating GLFW window" << std::endl;
@@ -113,7 +114,7 @@ auto main(int argc, char** argv) -> int {
             context->get_viewport().move((pos - context->get_input_state().last_cursor_pos) * glm::vec2(1.0, -1.0), context->get_input_state().window_size);
         }
 
-        context->get_input_state().last_cursor_pos = pos;
+        context->get_input_state().set_cursor_pos(pos, context->get_viewport());
     });
 
     glfwSetWindowSizeCallback(window, [](GLFWwindow*, int width, int height) {

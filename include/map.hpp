@@ -14,8 +14,7 @@ class Map : public BBox {
 public:
     Map()
         : m_bvh(nullptr) 
-    {
-    }
+    {}
 
     void init_bvh(std::pair<glm::vec2, glm::vec2> minmax_coords, size_t max_depth) {
         assert(!m_bvh);
@@ -25,7 +24,7 @@ public:
         m_bvh = std::make_unique<BVH>(minmax_coords, max_depth, 0);
     }
 
-    inline void add_way(std::unique_ptr<Way> way) {
+    inline void add_way(std::shared_ptr<Way> way) {
         assert(m_bvh);
         m_bvh->add_way(std::move(way));
     }
@@ -36,6 +35,10 @@ public:
 
     inline auto get_max_bvh_depth() const -> std::size_t {
         return m_max_bvh_depth;
+    }
+
+    inline auto get_nearest_way(glm::vec2 coords) const {
+        return m_bvh->get_nearest_way(coords);
     }
     
 private:

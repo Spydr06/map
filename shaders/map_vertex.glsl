@@ -29,6 +29,10 @@ const vec4 c_Colormap[] = vec4[](
 
     vec4(1.0), // railway
     vec4(0.36, 0.49, 0.89, 1.0), // waterway
+    
+    vec4(0.46, 0.18, 0.63, 1.0), // power lines
+    vec4(0.46, 0.18, 0.63, 1.0), // power distribution
+
     vec4(1.0, 0.0, 1.0, 1.0)
 );
 

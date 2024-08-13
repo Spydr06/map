@@ -31,7 +31,10 @@ struct Metadata {
         FOOTWAY_CROSSING,
 
         RAILWAY,
-        WATERWAY
+        WATERWAY,
+
+        POWER_LINE,
+        POWER_DISTRIBUTION
     };
 
     Metadata(std::unordered_map<std::string, std::string>& tags);
@@ -44,11 +47,11 @@ struct Metadata {
     }
 
     inline bool is_building() const {
-        return m_classification == UNKNOWN; // TODO
+        return m_classification == UNKNOWN || m_classification == POWER_DISTRIBUTION; // TODO
     }
 
     inline bool is_track() const {
-        return m_classification == HIGHWAY_TRACK;
+        return m_classification == HIGHWAY_TRACK || m_classification == HIGHWAY_UNCLASSIFIED;
     }
 
     Classification m_classification;
@@ -78,8 +81,10 @@ class Way : public BBox {
 public:
     typedef uint64_t Id;
 
-    Way() : m_nodes(), m_metadata() 
+    Way(Id id) : m_nodes(), m_metadata(), m_id(id)
     {}
+
+    Way(const Way &) = delete;
 
     ~Way() {
         if(m_vao)
@@ -104,11 +109,17 @@ public:
     inline void set_metadata(Metadata metadata) {
         m_metadata = metadata;
     }
+
+    inline auto get_id() const -> Id {
+        return m_id;
+    }
     
 private:
     std::vector<Node> m_nodes;
     Metadata m_metadata;
 
     GLuint m_vao = 0, m_vbo = 0;
+
+    Id m_id;
 };
 

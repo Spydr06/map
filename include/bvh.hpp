@@ -14,11 +14,13 @@ class BVH : public BBox {
 public:
     BVH(std::pair<glm::vec2, glm::vec2> minmax_coords, size_t max_depth, size_t depth);
 
-    void add_way(std::unique_ptr<Way> way);
+    void add_way(std::shared_ptr<Way> way);
     void draw(BBox& viewport, RenderFlags flags, size_t max_depth, size_t depth);
+
+    std::pair<float, std::shared_ptr<Way>> get_nearest_way(glm::vec2 coords) const;
 
 private:
     std::pair<std::unique_ptr<BVH>, std::unique_ptr<BVH>> m_children;
-    std::vector<std::unique_ptr<Way>> m_ways;
+    std::vector<std::shared_ptr<Way>> m_ways;
 };
 

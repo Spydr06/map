@@ -49,7 +49,7 @@ public:
     {}
 
     inline void make_current(Way::Id id) {
-        m_way = std::make_unique<Way>();
+        m_way = std::make_unique<Way>(id);
         m_way_id = id;
     }
 
@@ -92,7 +92,7 @@ public:
 
 private:
     Way::Id m_way_id = 0;
-    std::unique_ptr<Way> m_way = nullptr;
+    std::shared_ptr<Way> m_way = nullptr;
 
     std::unordered_map<std::string, std::string> m_tags;
 };

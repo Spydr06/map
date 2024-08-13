@@ -47,6 +47,18 @@ void RenderContext::draw_debug_info() {
 
     ImGui::SliderInt("BVH drawing depth", &m_bvh_max_depth, 0, m_map->get_max_bvh_depth());
 
+    ImGui::Separator();
+
+    ImGui::Text("raw cursor pos: (%f %f)", m_input_state.last_cursor_pos.x, m_input_state.last_cursor_pos.y);
+    ImGui::Text("mapped cursor pos: (%f %f)", m_input_state.mapped_cursor_pos.x, m_input_state.mapped_cursor_pos.y);
+
+    auto [dist, way] = m_map->get_nearest_way(m_input_state.mapped_cursor_pos);
+    if(way != nullptr) {
+        ImGui::Text("nearest way: %lu", way->get_id());
+    }
+    else
+        ImGui::Text("nearest way: N/A");
+
     ImGui::End();
 }
 

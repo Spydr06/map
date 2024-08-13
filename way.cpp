@@ -45,6 +45,15 @@ static std::unordered_map<std::string, Metadata::Classification> footway_classif
     {"crossing", Metadata::Classification::FOOTWAY_CROSSING}
 });
 
+static std::unordered_map<std::string, Metadata::Classification> power_classification({
+    {"line", Metadata::Classification::POWER_LINE},
+    {"minor_line", Metadata::Classification::POWER_LINE},
+    {"cable", Metadata::Classification::POWER_LINE},
+    {"tower", Metadata::Classification::POWER_DISTRIBUTION},
+    {"transformer", Metadata::Classification::POWER_DISTRIBUTION},
+    {"substation", Metadata::Classification::POWER_DISTRIBUTION}
+});
+
 Metadata::Metadata(std::unordered_map<std::string, std::string>& tags) {
     m_classification = Metadata::UNKNOWN;
 
@@ -73,6 +82,15 @@ Metadata::Metadata(std::unordered_map<std::string, std::string>& tags) {
     auto waterway = tags.find("waterway");
     if(waterway != tags.end())
         m_classification = Metadata::Classification::WATERWAY;
+
+    auto power = tags.find("power");
+    if(power != tags.end()) {
+        auto classification = power_classification.find(power->second);
+        if(classification != power_classification.end())
+            m_classification = classification->second;
+        else
+            m_classification = Metadata::Classification::POWER_DISTRIBUTION;
+    }
 }
 
 void Way::create_buffers() {
