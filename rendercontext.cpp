@@ -52,17 +52,30 @@ void RenderContext::draw_debug_info() {
     ImGui::Text("raw cursor pos: (%f %f)", m_input_state.last_cursor_pos.x, m_input_state.last_cursor_pos.y);
     ImGui::Text("mapped cursor pos: (%f %f)", m_input_state.mapped_cursor_pos.x, m_input_state.mapped_cursor_pos.y);
 
-    auto [dist, way] = m_map->get_nearest_way(m_input_state.mapped_cursor_pos);
-    if(way != nullptr) {
-        ImGui::Text("nearest way: %lu", way->get_id());
-    }
-    else
-        ImGui::Text("nearest way: N/A");
-
     ImGui::End();
 }
 
-void RenderContext::draw() {
+void RenderContext::draw_ui() {
+    draw_debug_info();
+
+    auto [dist, way] = m_map->get_nearest_way(m_input_state.mapped_cursor_pos);
+    if(way != nullptr) {
+        ImGui::Begin("Inspector");
+        
+        ImGui::Text("id: %lu", way->get_id());
+
+        ImGui::Separator();
+
+        for(auto& [ key, value ] : way->get_tags()) {
+            ImGui::Text("%s := %s", key.c_str(), value.c_str());
+        }
+
+        ImGui::End();
+    }
+}
+
+void RenderContext::draw_scene() {
+
     m_map_shader->use();
 
     m_viewport.upload_uniforms(m_map_shader->id(), m_input_state.window_size);

@@ -142,16 +142,15 @@ auto main(int argc, char** argv) -> int {
 
         glEnable(GL_LINE_SMOOTH);
 
-        context->draw();
+        context->draw_scene();
         
         ImGui_ImplOpenGL3_NewFrame();
         ImGui_ImplGlfw_NewFrame();
         ImGui::NewFrame();
 
-        context->draw_debug_info();
+        context->draw_ui();
 
         ImGui::Render();
-
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
         if(io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)

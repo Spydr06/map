@@ -39,9 +39,9 @@ static void XMLCALL enter_element(void* user_data, const XML_Char* name, const X
         }
 
         assert(id);
-        assert(!data->m_current_way.has_current());
+        assert(data->m_current_way == nullptr);
 
-        data->m_current_way.make_current(std::stoull(id));
+        data->m_current_way = std::make_shared<Way>(std::stoull(id));
     }
     else if(std::memcmp(name, "nd", 2) == 0) {
         assert(atts[2] == nullptr);
@@ -49,11 +49,11 @@ static void XMLCALL enter_element(void* user_data, const XML_Char* name, const X
         Node::Id node_ref = std::stoull(atts[1]);
         auto& node = data->m_node_cache->lookup(node_ref);
 
-        data->m_current_way.get_current()->add_node(node);
+        data->m_current_way->add_node(node);
     }
-    else if(data->m_current_way.has_current() && std::memcmp(name, "tag", 3) == 0) {
+    else if(data->m_current_way != nullptr && std::memcmp(name, "tag", 3) == 0) {
         assert(atts[4] == nullptr && atts[0][0] == 'k' && atts[2][0] == 'v');
-        data->m_current_way.add_tag(atts[1], atts[3]);
+        data->m_current_way->add_tag(atts[1], atts[3]);
     }
     else if(std::memcmp(name, "bounds", 5) == 0) {
         const XML_Char *min_lon = nullptr, *max_lon = nullptr, *min_lat = nullptr, *max_lat = nullptr;
@@ -85,21 +85,20 @@ static void XMLCALL leave_element(void* user_data, const XML_Char* name) {
     auto data = static_cast<PreData*>(user_data);
 
     if(std::memcmp(name, "way", 3) == 0) {
-        assert(data->m_current_way.has_current());
+        assert(data->m_current_way != nullptr);
 
         // only handle streets for now
         // if(data->m_current_way.has_tag("highway")) {
-            auto metadata = data->m_current_way.metadata();
-            auto [way_id, way] = data->m_current_way.reset();
+            auto metadata = data->m_current_way->parse_metadata();
 
-            for(auto& node : way->get_nodes()) {
+            for(auto& node : data->m_current_way->get_nodes()) {
                 node.m_metadata = metadata;
             }
 
-            way->set_metadata(metadata);
-            way->create_buffers();
+            data->m_current_way->create_buffers();
             
-            data->m_map->add_way(std::move(way));
+            data->m_map->add_way(std::move(data->m_current_way));
+            data->m_current_way = nullptr;
         // }
         // else {
         //    data->m_current_way.discard();

@@ -4,7 +4,6 @@
 #include "map.hpp"
 
 #include <memory>
-#include <string>
 #include <utility>
 #include <unordered_map>
 
@@ -42,61 +41,6 @@ private:
     std::unordered_map<Node::Id, Node> m_nodes;
 };
 
-class WayCache {
-public:
-    WayCache()
-        : m_tags({})
-    {}
-
-    inline void make_current(Way::Id id) {
-        m_way = std::make_unique<Way>(id);
-        m_way_id = id;
-    }
-
-    inline auto& get_current() {
-        return m_way;
-    }
-
-    inline auto get_current_id() {
-        return m_way_id;
-    }
-
-    inline bool has_current() {
-        return m_way_id != 0;
-    }
-
-    inline void discard() {
-        m_way_id = 0;
-        m_way = nullptr;
-        m_tags.clear();
-    }
-    
-    inline auto reset() {
-        auto way_id = m_way_id;
-        auto way = std::move(m_way);
-        discard();
-        return std::make_pair(way_id, std::move(way));
-    }
-
-    inline void add_tag(std::string tag_key, std::string tag_value) {
-        m_tags.insert({tag_key, tag_value});
-    }
-
-    inline bool has_tag(std::string tag_key) {
-        return m_tags.find(tag_key) == m_tags.end();
-    }
-
-    inline Metadata metadata() {
-        return Metadata(m_tags);
-    }
-
-private:
-    Way::Id m_way_id = 0;
-    std::shared_ptr<Way> m_way = nullptr;
-
-    std::unordered_map<std::string, std::string> m_tags;
-};
-
 struct PreData {
     PreData(std::shared_ptr<Map> map)
         : m_map(map), m_node_cache(std::make_unique<NodeCache>()), m_current_way()
@@ -105,7 +49,7 @@ struct PreData {
     std::shared_ptr<Map> m_map;
     std::unique_ptr<NodeCache> m_node_cache;
 
-    WayCache m_current_way;
+    std::shared_ptr<Way> m_current_way;
 };
 
 auto preprocess_data(const char* xml_path, std::shared_ptr<Map> map) -> int;

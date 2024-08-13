@@ -106,12 +106,20 @@ public:
         return m_nodes;
     }
 
-    inline void set_metadata(Metadata metadata) {
-        m_metadata = metadata;
-    }
-
     inline auto get_id() const -> Id {
         return m_id;
+    }
+
+    inline void add_tag(std::string key, std::string value) {
+        m_tags.insert({key, value});
+    }
+
+    inline auto& get_tags() {
+        return m_tags;
+    }
+
+    auto parse_metadata() -> Metadata {
+        return m_metadata = Metadata(m_tags);
     }
     
 private:
@@ -121,5 +129,7 @@ private:
     GLuint m_vao = 0, m_vbo = 0;
 
     Id m_id;
+
+    std::unordered_map<std::string, std::string> m_tags;
 };
 

@@ -21,8 +21,8 @@ public:
         init();
     }
 
-    void draw();
-    void draw_debug_info();
+    void draw_scene();
+    void draw_ui();
 
     inline auto& get_viewport() {
         return m_viewport;
@@ -34,6 +34,7 @@ public:
 
 private:
     void init();
+    void draw_debug_info();
 
     std::shared_ptr<Map> m_map;
     std::unique_ptr<Shader> m_map_shader;
