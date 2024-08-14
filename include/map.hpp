@@ -8,41 +8,34 @@
 #include <GL/glew.h>
 
 #include "bvh.hpp"
-#include "flags.hpp"
+#include "inputstate.hpp"
+#include "renderutil.hpp"
 
-class Map : public BBox {
+class Map : public BBox, public RenderElement {
 public:
-    Map()
-        : m_bvh(nullptr) 
-    {}
+    Map();
+    
+    void init_bvh(std::pair<glm::vec2, glm::vec2> minmax_coords, size_t max_depth);
 
-    void init_bvh(std::pair<glm::vec2, glm::vec2> minmax_coords, size_t max_depth) {
-        assert(!m_bvh);
-
-        set_minmax_coord(minmax_coords);
-        m_max_bvh_depth = max_depth;
-        m_bvh = std::make_unique<BVH>(minmax_coords, max_depth, 0);
-    }
+    virtual void draw_scene(Viewport& viewport, InputState& input) override;
+    virtual void draw_ui(InputState& input) override;
 
     inline void add_way(std::shared_ptr<Way> way) {
         assert(m_bvh);
         m_bvh->add_way(std::move(way));
     }
 
-    inline void draw(BBox& viewport, RenderFlags flags, size_t max_depth) {
-        m_bvh->draw(viewport, flags, max_depth, 0);
-    }
-
     inline auto get_max_bvh_depth() const -> std::size_t {
         return m_max_bvh_depth;
     }
 
-    inline auto get_nearest_way(glm::vec2 coords) const {
+    inline auto get_nearest_way(glm::vec2 coords) const -> std::pair<float, std::shared_ptr<Way>> {
         return m_bvh->get_nearest_way(coords);
     }
     
 private:
     std::unique_ptr<BVH> m_bvh;
-    std::size_t m_max_bvh_depth;
+    std::unique_ptr<Shader> m_shader;
+    std::size_t m_max_bvh_depth, m_render_bvh_depth;
 };
 

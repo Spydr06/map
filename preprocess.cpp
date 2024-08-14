@@ -1,4 +1,5 @@
 #include "preprocess.hpp"
+#include "way.hpp"
 
 #include <cassert>
 #include <cmath>
@@ -87,22 +88,20 @@ static void XMLCALL leave_element(void* user_data, const XML_Char* name) {
     if(std::memcmp(name, "way", 3) == 0) {
         assert(data->m_current_way != nullptr);
 
-        // only handle streets for now
-        // if(data->m_current_way.has_tag("highway")) {
-            auto metadata = data->m_current_way->parse_metadata();
-
-            for(auto& node : data->m_current_way->get_nodes()) {
-                node.m_metadata = metadata;
-            }
-
-            data->m_current_way->create_buffers();
-            
-            data->m_map->add_way(std::move(data->m_current_way));
+        auto metadata = data->m_current_way->parse_metadata();
+/*        if(metadata.m_classification == Metadata::UNKNOWN) {
             data->m_current_way = nullptr;
-        // }
-        // else {
-        //    data->m_current_way.discard();
-        // }
+            return;
+        } */
+
+        for(auto& node : data->m_current_way->get_nodes()) {
+            node.m_metadata = metadata;
+        }
+
+        data->m_current_way->create_buffers();
+
+        data->m_map->add_way(std::move(data->m_current_way));
+        data->m_current_way = nullptr;
     }
 }
 
@@ -125,10 +124,10 @@ auto preprocess_data(const char* xml_path, std::shared_ptr<Map> map) -> int {
     XML_SetElementHandler(parser, enter_element, leave_element);
 
     int ret = 0;
-    const auto buffer_size = BUFSIZ * 10;
+    const auto buffer_size = 1024 * 1024;
 
     while(!input.eof()) {
-        void* const buf = XML_GetBuffer(parser, 1024 * 1024);
+        void* const buf = XML_GetBuffer(parser, buffer_size);
         if(!buf) {
             std::cerr << "Could not allocate buffer of size " << buffer_size << std::endl;
             ret = 1;

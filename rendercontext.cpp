@@ -1,32 +1,12 @@
 #include "rendercontext.hpp"
-#include "flags.hpp"
 #include "imgui.h"
 
 #include <GL/glew.h>
 
 #include <cassert>
 #include <cstdlib>
-#include <fstream>
-#include <memory>
 #include <sstream>
 #include <iostream>
-
-void RenderContext::init() {
-    auto vertex_source = std::ifstream("shaders/map_vertex.glsl");
-    auto fragment_source = std::ifstream("shaders/map_fragment.glsl");
-    if(vertex_source.bad()) {
-        std::cerr << "Shader error: Shader file not found" << std::endl;
-        std::exit(1);
-    }
-
-    m_map_shader = std::make_unique<Shader>(vertex_source, fragment_source);
-    if(auto err = m_map_shader->get_error()) {
-        std::cerr << "Shader error:" << std::endl << *err << std::endl;
-        std::exit(1);
-    }
-
-    m_bvh_max_depth = m_map->get_max_bvh_depth();
-}
 
 void RenderContext::draw_debug_info() {
     ImGui::Begin("Debug info");
@@ -43,9 +23,9 @@ void RenderContext::draw_debug_info() {
     auto scale = m_viewport.get_scale(m_input_state.window_size);
     ImGui::Text("scale: (%f %f) (x%f)", scale.x, scale.y, m_viewport.get_scale_factor());
 
-    ImGui::Separator();
+//    ImGui::Separator();
 
-    ImGui::SliderInt("BVH drawing depth", &m_bvh_max_depth, 0, m_map->get_max_bvh_depth());
+//    ImGui::SliderInt("BVH drawing depth", &m_bvh_max_depth, 0, m_map->get_max_bvh_depth());
 
     ImGui::Separator();
 
@@ -58,41 +38,15 @@ void RenderContext::draw_debug_info() {
 void RenderContext::draw_ui() {
     draw_debug_info();
 
-    auto [dist, way] = m_map->get_nearest_way(m_input_state.mapped_cursor_pos);
-    if(way != nullptr) {
-        ImGui::Begin("Inspector");
-        
-        ImGui::Text("id: %lu", way->get_id());
-
-        ImGui::Separator();
-
-        for(auto& [ key, value ] : way->get_tags()) {
-            ImGui::Text("%s := %s", key.c_str(), value.c_str());
-        }
-
-        ImGui::End();
+    for(auto& element : m_elements) {
+        element->draw_ui(m_input_state);
     }
 }
 
 void RenderContext::draw_scene() {
-
-    m_map_shader->use();
-
-    m_viewport.upload_uniforms(m_map_shader->id(), m_input_state.window_size);
-
-    auto viewport = m_viewport.viewport_bbox();
-
-    auto scale = m_viewport.get_scale_factor();
-    int flags = RenderFlags::DEFAULT;
-
-    if(scale > 1.2f)
-        flags |= RenderFlags::TRACKS;
-    if(scale > 3.0f)
-        flags |= RenderFlags::FOOTWAYS;
-    if(scale > 4.0f)
-        flags |= RenderFlags::BUILDINGS;
-
-    m_map->draw(viewport, static_cast<RenderFlags>(flags), m_bvh_max_depth);
+    for(auto& element : m_elements) {
+        element->draw_scene(m_viewport, m_input_state);
+    }
 }
 
 void Viewport::upload_uniforms(GLuint shader_id, glm::vec2 window_size) {
