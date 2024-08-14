@@ -16,7 +16,7 @@ public:
     void add_way(std::shared_ptr<Way> way);
     void draw(BBox& viewport, DrawPriority priority, size_t max_depth, size_t depth);
 
-    std::pair<float, std::shared_ptr<Way>> get_nearest_way(glm::vec2 coords) const;
+    std::pair<float, std::shared_ptr<Way>> get_nearest_way(glm::vec2 coords, DrawPriority priority) const;
 
 private:
     std::pair<std::unique_ptr<BVH>, std::unique_ptr<BVH>> m_children;

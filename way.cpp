@@ -144,3 +144,9 @@ void Way::draw_buffers() {
     glDrawArrays(GL_LINE_STRIP, 0, m_nodes.size());
 }
 
+void Way::draw_highlighted_buffers() {
+    glBindVertexArray(m_vao);
+    glLineWidth(4);
+    glDrawArrays(GL_LINE_STRIP, 0, m_nodes.size());
+}
+

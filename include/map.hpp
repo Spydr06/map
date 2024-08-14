@@ -10,6 +10,7 @@
 #include "bvh.hpp"
 #include "inputstate.hpp"
 #include "renderutil.hpp"
+#include "way.hpp"
 
 class Map : public BBox, public RenderElement {
 public:
@@ -30,12 +31,17 @@ public:
     }
 
     inline auto get_nearest_way(glm::vec2 coords) const -> std::pair<float, std::shared_ptr<Way>> {
-        return m_bvh->get_nearest_way(coords);
+        return m_bvh->get_nearest_way(coords, m_draw_priority);
     }
     
 private:
     std::unique_ptr<BVH> m_bvh;
     std::unique_ptr<Shader> m_shader;
+    std::unique_ptr<Shader> m_selection_shader;
+
     std::size_t m_max_bvh_depth, m_render_bvh_depth;
+    std::shared_ptr<Way> m_selected_way;
+
+    DrawPriority m_draw_priority = DrawPriority::__DRAW_PRIO_LAST;
 };
 

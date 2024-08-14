@@ -23,6 +23,20 @@ Map::Map()
         std::cerr << "Shader error:" << std::endl << *err << std::endl;
         std::exit(1);
     }
+
+
+    auto sel_vertex_source = std::ifstream("shaders/map_selected_vertex.glsl");
+    auto sel_fragment_source = std::ifstream("shaders/map_selected_fragment.glsl");
+    if(sel_vertex_source.bad() || sel_fragment_source.bad()) {
+        std::cerr << "Shader error: Shader file not found" << std::endl;
+        std::exit(1);
+    }
+
+    m_selection_shader = std::make_unique<Shader>(sel_vertex_source, sel_fragment_source);
+    if(auto err = m_selection_shader->get_error()) {
+        std::cerr << "Shader error:" << std::endl << *err << std::endl;
+        std::exit(1);
+    }
 }
 
 void Map::init_bvh(std::pair<glm::vec2, glm::vec2> minmax_coords, size_t max_depth) {
@@ -42,14 +56,22 @@ void Map::draw_scene(Viewport& viewport, InputState& input) {
 
     auto scale = viewport.get_scale_factor();
 
-    int priority = std::clamp(int(scale * 2 + std::sqrt(scale * 4)), 1, int(DrawPriority::__DRAW_PRIO_LAST));
+    m_draw_priority = static_cast<DrawPriority>(std::clamp(int(scale * 2 + std::sqrt(scale * 4)), 1, int(DrawPriority::__DRAW_PRIO_LAST)));
 
-    m_bvh->draw(view_box, static_cast<DrawPriority>(priority), m_render_bvh_depth, 0);
+    m_bvh->draw(view_box, m_draw_priority, m_render_bvh_depth, 0);
+
+    if(m_selected_way) {
+        m_selection_shader->use();
+        viewport.upload_uniforms(m_selection_shader->id(), input.window_size);
+
+        m_selected_way->draw_highlighted_buffers();
+    }
 }
 
 void Map::draw_ui(InputState& input) {
     auto [dist, way] = get_nearest_way(input.mapped_cursor_pos);
-
+    m_selected_way = way;
+    
     if(way != nullptr) {
         ImGui::Begin("Inspector");
 

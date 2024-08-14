@@ -78,23 +78,23 @@ void BVH::draw(BBox& viewport, DrawPriority priority, size_t max_depth, size_t d
         b->draw(viewport, priority, max_depth, depth + 1);
 }
 
-std::pair<float, std::shared_ptr<Way>> BVH::get_nearest_way(glm::vec2 coords) const {
+std::pair<float, std::shared_ptr<Way>> BVH::get_nearest_way(glm::vec2 coords, DrawPriority priority) const {
     float min_dist = std::numeric_limits<float>::infinity();
     std::shared_ptr<Way> way_ptr = nullptr;
 
     auto& [ a, b ] = m_children;
     if(a != nullptr && a->contains(coords)) {
-        auto inner = a->get_nearest_way(coords);
+        auto inner = a->get_nearest_way(coords, priority);
         min_dist = inner.first;
         way_ptr = inner.second;
     }
     else if(b != nullptr && b->contains(coords)) {
-        auto inner = b->get_nearest_way(coords);
+        auto inner = b->get_nearest_way(coords, priority);
         min_dist = inner.first;
         way_ptr = inner.second;
     }
 
-    for(int i = 0; i < DrawPriority::__DRAW_PRIO_LAST; i++) {
+    for(int i = 0; i < priority; i++) {
         for(auto& way : m_ways[i]) {
             if(!way->contains(coords))
                 continue;
