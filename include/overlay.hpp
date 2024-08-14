@@ -17,7 +17,5 @@ public:
 
 private:
     std::unique_ptr<Shader> m_shader;
-
-    GLuint m_vao = 0, m_vbo = 0;
 };
 

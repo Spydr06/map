@@ -1,13 +1,32 @@
 #pragma once
 
 #include "viewport.hpp"
-#include "flags.hpp"
 
 #include <vector>
 #include <unordered_map>
 #include <string>
 
 #include <GL/glew.h>
+
+// draw priority, in descending order
+enum DrawPriority {
+    MOTORWAY,
+    RAILWAY = MOTORWAY,
+    RIVER = MOTORWAY,
+    MAJOR_HIGHWAY,
+    MINOR_HIGHWAY,
+    LOCAL_STREET,
+    POWER_LINE = LOCAL_STREET,
+    RESIDENTIAL_STREET,
+    PATHWAY,
+    CYCLEWAY,
+    FOOTWAY,
+    BUILDING,
+
+    __DRAW_PRIO_LAST,
+};
+
+extern const DrawPriority classification_draw_priorities[];
 
 struct Metadata {
     enum Classification : GLbyte {
@@ -34,7 +53,9 @@ struct Metadata {
         WATERWAY,
 
         POWER_LINE,
-        POWER_DISTRIBUTION
+        POWER_DISTRIBUTION,
+
+        __CLASSIFICATION_LAST
     };
 
     Metadata(std::unordered_map<std::string, std::string>& tags);
@@ -52,6 +73,10 @@ struct Metadata {
 
     inline bool is_track() const {
         return m_classification == HIGHWAY_TRACK || m_classification == HIGHWAY_UNCLASSIFIED;
+    }
+
+    inline auto draw_priority() const {
+        return classification_draw_priorities[m_classification];
     }
 
     Classification m_classification;
@@ -95,7 +120,7 @@ public:
 
     void create_buffers();
 
-    void draw_buffers(RenderFlags flags);
+    void draw_buffers();
 
     inline void add_node(Node node) {
         increase_bbox(node.m_coord);
@@ -120,6 +145,10 @@ public:
 
     auto parse_metadata() -> Metadata {
         return m_metadata = Metadata(m_tags);
+    }
+
+    inline auto& get_metadata() const {
+        return m_metadata;
     }
     
 private:

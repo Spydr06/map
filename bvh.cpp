@@ -1,7 +1,7 @@
 #include "bvh.hpp"
+#include "way.hpp"
 
 #include <limits>
-#include <optional>
 
 #define GLM_ENABLE_EXPERIMENTAL
 #include <glm/gtx/norm.hpp>
@@ -11,6 +11,10 @@ BVH::BVH(std::pair<glm::vec2, glm::vec2> minmax_coords, size_t max_depth, size_t
 {
     if(depth + 1 >= max_depth)
         return;
+
+    for(int i = 0; i < DrawPriority::__DRAW_PRIO_LAST; i++) {
+        m_ways[i] = std::vector<std::shared_ptr<Way>>();
+    }
 
     glm::vec2 size = bbox_size();
     
@@ -38,8 +42,9 @@ BVH::BVH(std::pair<glm::vec2, glm::vec2> minmax_coords, size_t max_depth, size_t
 void BVH::add_way(std::shared_ptr<Way> way) {
     auto& [ a, b ] = m_children;
 
+    auto priority = way->get_metadata().draw_priority();
     if(!a || !b) {
-        m_ways.push_back(std::move(way));
+        m_ways[priority].push_back(std::move(way));
         return;
     }
 
@@ -47,29 +52,30 @@ void BVH::add_way(std::shared_ptr<Way> way) {
     bool in_b = way->intersects(*b);
 
     if(in_a == in_b)
-        m_ways.push_back(std::move(way));
+        m_ways[priority].push_back(std::move(way));
     else if(in_a)
         a->add_way(std::move(way));
     else if(in_b)
         b->add_way(std::move(way));
-    else
-        assert(false && "unreachable");
 }
 
-void BVH::draw(BBox& viewport, RenderFlags flags, size_t max_depth, size_t depth)
+void BVH::draw(BBox& viewport, DrawPriority priority, size_t max_depth, size_t depth)
 {
     if(depth >= max_depth)
         return;
     
-    for(auto& way : m_ways) {
-        way->draw_buffers(flags);
+    for(int i = 0; i < static_cast<int>(priority); i++) {
+        auto& ways = m_ways[i];
+        for(auto& way : ways) {
+            way->draw_buffers();
+        }
     }
 
     auto& [ a, b ] = m_children;
     if(a != nullptr && a->intersects(viewport))
-        a->draw(viewport, flags, max_depth, depth + 1);
+        a->draw(viewport, priority, max_depth, depth + 1);
     if(b != nullptr && b->intersects(viewport))
-        b->draw(viewport, flags, max_depth, depth + 1);
+        b->draw(viewport, priority, max_depth, depth + 1);
 }
 
 std::pair<float, std::shared_ptr<Way>> BVH::get_nearest_way(glm::vec2 coords) const {
@@ -88,15 +94,17 @@ std::pair<float, std::shared_ptr<Way>> BVH::get_nearest_way(glm::vec2 coords) co
         way_ptr = inner.second;
     }
 
-    for(auto& way : m_ways) {
-        if(!way->contains(coords))
-            continue;
+    for(int i = 0; i < DrawPriority::__DRAW_PRIO_LAST; i++) {
+        for(auto& way : m_ways[i]) {
+            if(!way->contains(coords))
+                continue;
 
-        for(auto& node : way->get_nodes()) {
-            auto dist = glm::distance2(coords, node.m_coord);
-            if(dist < min_dist) { 
-                min_dist = dist;
-                way_ptr = way;
+            for(auto& node : way->get_nodes()) {
+                auto dist = glm::distance2(coords, node.m_coord);
+                if(dist < min_dist) { 
+                    min_dist = dist;
+                    way_ptr = way;
+                }
             }
         }
     }

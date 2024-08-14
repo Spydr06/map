@@ -1,5 +1,8 @@
 #include "map.hpp"
+#include "bvh.hpp"
+#include "way.hpp"
 
+#include <cmath>
 #include <fstream>
 #include <iostream>
 
@@ -38,20 +41,15 @@ void Map::draw_scene(Viewport& viewport, InputState& input) {
     viewport.upload_uniforms(m_shader->id(), input.window_size);
 
     auto scale = viewport.get_scale_factor();
-    int flags = RenderFlags::DEFAULT;
 
-    if(scale > 1.2f)
-        flags |= RenderFlags::TRACKS;
-    if(scale > 3.0f)
-        flags |= RenderFlags::FOOTWAYS;
-    if(scale > 4.0f)
-        flags |= RenderFlags::BUILDINGS;
+    int priority = std::clamp(int(scale * 2 + std::sqrt(scale * 4)), 1, int(DrawPriority::__DRAW_PRIO_LAST));
 
-    m_bvh->draw(view_box, static_cast<RenderFlags>(flags), m_render_bvh_depth, 0);
+    m_bvh->draw(view_box, static_cast<DrawPriority>(priority), m_render_bvh_depth, 0);
 }
 
 void Map::draw_ui(InputState& input) {
     auto [dist, way] = get_nearest_way(input.mapped_cursor_pos);
+
     if(way != nullptr) {
         ImGui::Begin("Inspector");
 

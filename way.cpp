@@ -1,11 +1,36 @@
 #include "way.hpp"
-#include "flags.hpp"
 
 #include <GL/glew.h>
 
 #include <algorithm>
 #include <string>
 #include <unordered_map>
+
+const DrawPriority classification_draw_priorities[] {
+    DrawPriority::BUILDING, // UNKNOWN
+    DrawPriority::MOTORWAY, // HIGHWAY_MOTORWAY
+    DrawPriority::MAJOR_HIGHWAY, // HIGHWAY_TRUNK
+    DrawPriority::MAJOR_HIGHWAY, // HIGHWAY_PRIMARY
+    DrawPriority::MINOR_HIGHWAY, // HIGHWAY_SECONDARY
+    DrawPriority::MINOR_HIGHWAY, // HIGHWAY_TERTIARY
+    DrawPriority::LOCAL_STREET, // HIGHWAY_UNCLASSIFIED
+    DrawPriority::RESIDENTIAL_STREET, // HIGHWAY_RESIDENTIAL
+    DrawPriority::RESIDENTIAL_STREET, // HIGHWAY_LIVING_STREET
+    DrawPriority::LOCAL_STREET, // HIGHWAY_SERVICE
+    DrawPriority::RESIDENTIAL_STREET, // HIGHWAY_PEDESTIRAN
+    DrawPriority::PATHWAY, // HIGHWAY_TRACK
+    DrawPriority::LOCAL_STREET, // HIGHWAY_BUSWAY
+    DrawPriority::FOOTWAY, // FOOTWAY
+    DrawPriority::CYCLEWAY, // CYCLEWAY
+    DrawPriority::FOOTWAY, // FOOTWAY_SIDEWALK
+    DrawPriority::FOOTWAY, // FOOTWAY_CROSSING
+    DrawPriority::RAILWAY, // RAILWAY,
+    DrawPriority::RIVER, // WATERWAY
+    DrawPriority::POWER_LINE, // POWER_LINE
+    DrawPriority::BUILDING, // POWER_DISTRIBUTION
+};
+
+static_assert(sizeof(classification_draw_priorities) / sizeof(DrawPriority) == Metadata::__CLASSIFICATION_LAST);
 
 static std::unordered_map<std::string, Metadata::Classification> highway_classifications({
     {"motorway", Metadata::Classification::HIGHWAY_MOTORWAY},
@@ -113,16 +138,7 @@ void Way::create_buffers() {
     glBindVertexArray(0);
 }
 
-void Way::draw_buffers(RenderFlags flags) {
-    if(!(flags & RenderFlags::FOOTWAYS) && m_metadata.is_footway())
-        return;
-
-    if(!(flags & RenderFlags::BUILDINGS) && m_metadata.is_building())
-        return;
-
-    if(!(flags & RenderFlags::TRACKS) && m_metadata.is_track())
-        return;
-
+void Way::draw_buffers() {
     glBindVertexArray(m_vao);
     glLineWidth(m_metadata.m_line_width);
     glDrawArrays(GL_LINE_STRIP, 0, m_nodes.size());

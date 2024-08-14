@@ -17,27 +17,9 @@ Overlay::Overlay() {
         std::cerr << "Shader error:" << std::endl << *err << std::endl;
         std::exit(1);
     }
-
-    glGenVertexArrays(1, &m_vao);
-    glGenBuffers(1, &m_vbo);
-
-    assert(m_vao != 0);
-    assert(m_vbo != 0);
-
-    glBindBuffer(GL_ARRAY_BUFFER, m_vbo);
-    glBindVertexArray(m_vao);
-    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(glm::vec2), nullptr);
-    glEnableVertexAttribArray(0);
-
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
-    glBindVertexArray(0);
 }
 
 Overlay::~Overlay() {
-    if(m_vao)
-        glDeleteVertexArrays(1, &m_vao);
-    if(m_vbo)
-        glDeleteVertexArrays(1, &m_vbo);
 }
 
 void Overlay::draw_scene(Viewport& viewport, InputState& input) {
@@ -53,11 +35,7 @@ void Overlay::draw_scene(Viewport& viewport, InputState& input) {
         cursor + glm::vec2(-0.001, 0.001)
     };
 
-    glBindBuffer(GL_ARRAY_BUFFER, m_vbo);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_DYNAMIC_DRAW);
-
-    glBindVertexArray(m_vao);
-    glDrawArrays(GL_TRIANGLES, 0, 3);
+    // TODO: draw overlay
 };
 
 void Overlay::draw_ui(InputState& input) {
