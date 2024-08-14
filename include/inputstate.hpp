@@ -11,7 +11,8 @@ struct InputState {
     inline void set_cursor_pos(glm::vec2 cursor_pos, Viewport& viewport) {
         last_cursor_pos = cursor_pos;
 
-        auto normalized_pos = cursor_pos / window_size * glm::vec2(2.0) - glm::vec2(1.0);
+        auto rectified_cursor_pos = (cursor_pos - glm::vec2(0.0, window_size.y)) * glm::vec2(1.0, -1.0);
+        auto normalized_pos = rectified_cursor_pos / window_size * glm::vec2(2.0) - glm::vec2(1.0);
         auto scale = viewport.get_scale(window_size);
 
         mapped_cursor_pos = normalized_pos / scale - viewport.get_translation();
