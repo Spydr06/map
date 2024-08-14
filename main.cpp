@@ -3,6 +3,7 @@
 #include <vector>
 #include <memory>
 
+#include "overlay.hpp"
 #include "preprocess.hpp"
 #include "map.hpp"
 #include "rendercontext.hpp"
@@ -76,6 +77,7 @@ auto main(int argc, char** argv) -> int {
     // io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
 
     context = std::make_unique<RenderContext>(map, window_size);
+    context->add_element(std::make_shared<Overlay>());
 
     glfwSetScrollCallback(window, [](GLFWwindow*, [[maybe_unused]] double xoffset, double yoffset){
         auto& scale = context->get_viewport().get_scale_factor();

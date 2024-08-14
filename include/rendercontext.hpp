@@ -6,6 +6,7 @@
 #include "renderutil.hpp"
 
 #include <memory>
+#include <set>
 
 #include <GL/glew.h>
 
@@ -17,6 +18,10 @@ public:
 
     void draw_scene();
     void draw_ui();
+
+    inline void add_element(std::shared_ptr<RenderElement> element) {
+        m_elements.insert(element);
+    }
 
     inline auto& get_viewport() {
         return m_viewport;
@@ -30,7 +35,7 @@ private:
     void draw_debug_info();
 
     std::shared_ptr<Map> m_map;
-    std::vector<std::shared_ptr<RenderElement>> m_elements;
+    std::multiset<std::shared_ptr<RenderElement>, RenderElement::Comparator> m_elements;
     
     Viewport m_viewport;
     InputState m_input_state;
