@@ -87,6 +87,8 @@ static std::unordered_map<std::string, Metadata::Classification> landuse_classif
     {"farmyard", Metadata::Classification::LANDUSE_AGRICULTURAL},
     {"aquaculture", Metadata::Classification::LAKE},
     {"forest", Metadata::Classification::LANDUSE_FOREST},
+    {"wood", Metadata::Classification::LANDUSE_FOREST},
+    {"scrub", Metadata::Classification::LANDUSE_FOREST},
     {"quarry", Metadata::Classification::LANDUSE_INDUSTRIAL},
     {"park", Metadata::Classification::LANDUSE_RECREATIONAL},
     {"garden", Metadata::Classification::LANDUSE_RECREATIONAL},

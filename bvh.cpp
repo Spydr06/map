@@ -96,13 +96,22 @@ std::pair<float, std::shared_ptr<Way>> BVH::get_nearest_way(glm::vec2 coords, Dr
 
     for(int i = 0; i < priority; i++) {
         for(auto& way : m_ways[i]) {
-            if(!way->contains(coords))
-                continue;
+            for(size_t j = 1; j < way->get_nodes().size(); j++) {
+                auto v = way->get_nodes()[j - 1].m_coord;
+                auto w = way->get_nodes()[j].m_coord;
 
-            for(auto& node : way->get_nodes()) {
-                auto dist = glm::distance2(coords, node.m_coord);
-                if(dist < min_dist) { 
-                    min_dist = dist;
+                float length_sq = glm::distance2(v, w);
+                float dist_sq = 0.0f;
+                if(length_sq == 0.0f)
+                    dist_sq = glm::distance2(coords, v);
+                else {
+                    float t = std::max(0.0f, std::min(1.0f, glm::dot(coords - v, w - v) / length_sq));
+                    auto projection = v + t * (w - v);
+                    dist_sq = glm::distance2(coords, projection);
+                }
+
+                if(dist_sq < min_dist) {
+                    min_dist = dist_sq;
                     way_ptr = way;
                 }
             }
