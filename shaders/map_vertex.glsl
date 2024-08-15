@@ -29,6 +29,15 @@ const vec4 c_Colormap[] = vec4[](
 
     vec4(1.0), // railway
     vec4(0.36, 0.49, 0.89, 1.0), // waterway
+    vec4(0.36, 0.49, 0.89, 1.0), // lake
+
+    vec4(0.58, 0.75, 0.41, 1.0), // landuse agricultural
+    vec4(0.27, 0.42, 0.19, 1.0), // landuse forest
+    vec4(0.89, 0.55, 0.62, 1.0), // landuse industrial
+    vec4(0.58, 0.75, 0.41, 1.0), // landuse recreational
+    vec4(0.89, 0.55, 0.62, 1.0), // landuse transport
+    vec4(0.89, 0.55, 0.62, 1.0), // landuse commercial
+    vec4(0.3, 0.3, 0.3, 0.5), // landuse residential
     
     vec4(0.46, 0.18, 0.63, 1.0), // power lines
     vec4(0.46, 0.18, 0.63, 1.0), // power distribution

@@ -9,7 +9,7 @@ SOURCES := $(wildcard $(IMGUI_DIR)/*.cpp) $(IMGUI_DIR)/backends/imgui_impl_glfw.
 OBJECTS := $(patsubst %.cpp, $(BUILD_DIR)/%.o, $(SOURCES))
 
 CXXFLAGS += -Wall -Wextra -pedantic -std=c++17 $(shell pkg-config --cflags $(LIBRARIES)) -Iinclude -I$(IMGUI_DIR)
-LDFLAGS += $(shell pkg-config --libs $(LIBRARIES))
+LDFLAGS += $(shell pkg-config --libs $(LIBRARIES)) -lm
 
 .PHONY: all
 all: $(BINARY)

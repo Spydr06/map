@@ -3,11 +3,8 @@
 #include <GL/glew.h>
 
 #include <algorithm>
-#include <iomanip>
 #include <string>
 #include <unordered_map>
-#include <iostream>
-#include <fstream>
 
 const DrawPriority classification_draw_priorities[] {
     DrawPriority::BUILDING, // UNKNOWN
@@ -27,8 +24,16 @@ const DrawPriority classification_draw_priorities[] {
     DrawPriority::CYCLEWAY, // CYCLEWAY
     DrawPriority::FOOTWAY, // FOOTWAY_SIDEWALK
     DrawPriority::FOOTWAY, // FOOTWAY_CROSSING
-    DrawPriority::RAILWAY, // RAILWAY,
+    DrawPriority::RAILWAY, // RAILWAY
     DrawPriority::RIVER, // WATERWAY
+    DrawPriority::RIVER, // LAKE
+    DrawPriority::AGRICULTURAL, // LANDUSE_AGRICULTURAL
+    DrawPriority::AGRICULTURAL, // LANDUSE_FOREST
+    DrawPriority::INDUSTRIAL, // LANDUSE_INDUSTRIAL
+    DrawPriority::RECREATIONAL, // LANDUSE_RECREATIONAL
+    DrawPriority::INDUSTRIAL, // LANUSE_TRANSPORT
+    DrawPriority::COMMERCIAL, // LANDUSE_COMMERCIAL
+    DrawPriority::RECREATIONAL, // LANDUSE_RESIDENTIAL
     DrawPriority::POWER_LINE, // POWER_LINE
     DrawPriority::BUILDING, // POWER_DISTRIBUTION
 };
@@ -73,6 +78,30 @@ static std::unordered_map<std::string, Metadata::Classification> footway_classif
     {"crossing", Metadata::Classification::FOOTWAY_CROSSING}
 });
 
+static std::unordered_map<std::string, Metadata::Classification> landuse_classification({
+    {"farmland", Metadata::Classification::LANDUSE_AGRICULTURAL},
+    {"meadow", Metadata::Classification::LANDUSE_AGRICULTURAL},
+    {"orchard", Metadata::Classification::LANDUSE_AGRICULTURAL},
+    {"vineyard", Metadata::Classification::LANDUSE_AGRICULTURAL},
+    {"greenhouse_horticulture", Metadata::Classification::LANDUSE_AGRICULTURAL},
+    {"farmyard", Metadata::Classification::LANDUSE_AGRICULTURAL},
+    {"aquaculture", Metadata::Classification::LAKE},
+    {"forest", Metadata::Classification::LANDUSE_FOREST},
+    {"quarry", Metadata::Classification::LANDUSE_INDUSTRIAL},
+    {"park", Metadata::Classification::LANDUSE_RECREATIONAL},
+    {"garden", Metadata::Classification::LANDUSE_RECREATIONAL},
+    {"grass", Metadata::Classification::LANDUSE_RECREATIONAL},
+    {"recreation_ground", Metadata::Classification::LANDUSE_RECREATIONAL},
+    {"industrial", Metadata::Classification::LANDUSE_INDUSTRIAL},
+    {"railway", Metadata::Classification::LANDUSE_TRANSPORT},
+    {"port", Metadata::Classification::LANDUSE_INDUSTRIAL},
+    {"depot", Metadata::Classification::LANDUSE_TRANSPORT},
+    {"reservoir", Metadata::Classification::LAKE},
+    {"commercial", Metadata::Classification::LANDUSE_COMMERCIAL},
+    {"residential", Metadata::Classification::LANDUSE_RESIDENTIAL},
+    {"retail", Metadata::Classification::LANDUSE_COMMERCIAL},
+});
+
 static std::unordered_map<std::string, Metadata::Classification> power_classification({
     {"line", Metadata::Classification::POWER_LINE},
     {"minor_line", Metadata::Classification::POWER_LINE},
@@ -107,9 +136,20 @@ Metadata::Metadata(std::unordered_map<std::string, std::string>& tags) {
     if(railway != tags.end())
         m_classification = Metadata::Classification::RAILWAY;
 
+    auto landuse = tags.find("landuse");
+    if(landuse != tags.end()) {
+        auto classification = landuse_classification.find(landuse->second);
+        if(classification != landuse_classification.end())
+            m_classification = classification->second;
+    }
+
     auto waterway = tags.find("waterway");
     if(waterway != tags.end())
         m_classification = Metadata::Classification::WATERWAY;
+
+    auto water = tags.find("water");
+    if(water != tags.end())
+        m_classification = Metadata::Classification::LAKE;
 
     auto power = tags.find("power");
     if(power != tags.end()) {
