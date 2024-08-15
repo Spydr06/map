@@ -11,8 +11,19 @@
 #include <memory>
 #include <string>
 
+static inline float rad_to_deg(float rad) {
+    return rad * (180.0f / M_PI);
+}
+
+static inline float deg_to_rad(float deg) {
+    return deg / (180.0f / M_PI);
+}
+
 static inline glm::vec2 map_project(float lon, float lat) {
-    return glm::vec2(lon * std::cos(lat / 180.0 * M_PI), lat);
+    return glm::vec2(
+        lon,
+        rad_to_deg(std::log(std::tan(deg_to_rad(lat) / 2 + M_PI / 4)))
+    );
 }
 
 static void XMLCALL enter_element(void* user_data, const XML_Char* name, const XML_Char** atts) {

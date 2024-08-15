@@ -3,8 +3,11 @@
 #include <GL/glew.h>
 
 #include <algorithm>
+#include <iomanip>
 #include <string>
 #include <unordered_map>
+#include <iostream>
+#include <fstream>
 
 const DrawPriority classification_draw_priorities[] {
     DrawPriority::BUILDING, // UNKNOWN
@@ -136,6 +139,18 @@ void Way::create_buffers() {
 
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindVertexArray(0);
+
+/*    if(m_id == 270084823) {
+        std::cout << "here" << std::endl;
+
+        std::ofstream output("extract.txt");
+        
+        for(auto& node : m_nodes) {
+            output << std::setprecision(9) << node.m_coord.x << "," << node.m_coord.y << std::endl;
+        }
+
+        output.close();
+    } */
 }
 
 void Way::draw_buffers() {
