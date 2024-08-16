@@ -1,5 +1,6 @@
 #include "rendercontext.hpp"
 #include "imgui.h"
+#include "renderutil.hpp"
 
 #include <GL/glew.h>
 
@@ -17,6 +18,18 @@ void RenderContext::draw_debug_info() {
     auto viewport = m_viewport.viewport_size();
     ImGui::Text("viewport size: (%f %f)", viewport.x, viewport.y);
 
+    /*auto view_min = m_viewport.min_view();
+    auto view_max = m_viewport.max_view();
+
+    auto tl = view_min;
+    auto tr = glm::vec2(view_max.x, view_min.y);
+    auto bl = glm::vec2(view_min.x, view_max.x);
+
+    auto view_width_m = measure_mapped_dist(tl, tr);
+    auto view_width_h = measure_mapped_dist(tl, bl);
+
+    ImGui::Text("viewport size (m): (%f %f)", view_width_m, view_width_h); */
+    
     auto translation = m_viewport.get_translation();
     ImGui::Text("translation: (%f %f)", translation.x, translation.y);
 
@@ -32,6 +45,10 @@ void RenderContext::draw_debug_info() {
     ImGui::Text("raw cursor pos: (%f %f)", m_input_state.last_cursor_pos.x, m_input_state.last_cursor_pos.y);
     ImGui::Text("mapped cursor pos: (%f %f)", m_input_state.mapped_cursor_pos.x, m_input_state.mapped_cursor_pos.y);
 
+    ImGui::Separator();
+
+    ImGui::Checkbox("Show mesh", &m_disable_fill);
+
     ImGui::End();
 }
 
@@ -44,6 +61,8 @@ void RenderContext::draw_ui() {
 }
 
 void RenderContext::draw_scene() {
+    glPolygonMode(GL_FRONT_AND_BACK, m_disable_fill ? GL_LINE : GL_FILL);
+
     for(auto& element : m_elements) {
         element->draw_scene(m_viewport, m_input_state);
     }

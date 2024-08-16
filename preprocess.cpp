@@ -1,5 +1,6 @@
 #include "preprocess.hpp"
 #include "way.hpp"
+#include "renderutil.hpp"
 
 #include <cassert>
 #include <cmath>
@@ -10,21 +11,6 @@
 #include <expat.h>
 #include <memory>
 #include <string>
-
-static inline float rad_to_deg(float rad) {
-    return rad * (180.0f / M_PI);
-}
-
-static inline float deg_to_rad(float deg) {
-    return deg / (180.0f / M_PI);
-}
-
-static inline glm::vec2 map_project(float lon, float lat) {
-    return glm::vec2(
-        lon,
-        rad_to_deg(std::log(std::tan(deg_to_rad(lat) / 2 + M_PI / 4)))
-    );
-}
 
 static void XMLCALL enter_element(void* user_data, const XML_Char* name, const XML_Char** atts) {
     auto data = static_cast<PreData*>(user_data);
@@ -41,7 +27,7 @@ static void XMLCALL enter_element(void* user_data, const XML_Char* name, const X
         }
         
         assert(id && lat && lon);
-        data->m_node_cache->add_node(std::stoull(id), Node(map_project(std::stof(lon), std::stof(lat))));
+        data->m_node_cache->add_node(std::stoull(id), Node(map_project(glm::vec2(std::stof(lon), std::stof(lat)))));
     }
     else if(std::memcmp(name, "way", 3) == 0) {
         const XML_Char* id = nullptr;
@@ -81,12 +67,12 @@ static void XMLCALL enter_element(void* user_data, const XML_Char* name, const X
         }
 
         assert(min_lon && max_lon && min_lat && max_lat);
-        auto min_a = map_project(std::stof(min_lon), std::stof(min_lat));
-        auto min_b = map_project(std::stof(min_lon), std::stof(max_lat));
+        auto min_a = map_project(glm::vec2(std::stof(min_lon), std::stof(min_lat)));
+        auto min_b = map_project(glm::vec2(std::stof(min_lon), std::stof(max_lat)));
         glm::vec2 min(std::min(min_a.x, min_b.x), min_a.y);
 
-        auto max_a = map_project(std::stof(max_lon), std::stof(max_lat));
-        auto max_b = map_project(std::stof(max_lon), std::stof(min_lat));
+        auto max_a = map_project(glm::vec2(std::stof(max_lon), std::stof(max_lat)));
+        auto max_b = map_project(glm::vec2(std::stof(max_lon), std::stof(min_lat)));
         glm::vec2 max(std::max(max_a.x, max_b.x), max_a.y);
 
         data->m_map->init_bvh(std::make_pair(min, max), 16);

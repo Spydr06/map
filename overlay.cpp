@@ -39,6 +39,5 @@ void Overlay::draw_scene(Viewport& viewport, InputState& input) {
 };
 
 void Overlay::draw_ui(InputState& input) {
-
 };
 

@@ -2,9 +2,10 @@
 
 #include "viewport.hpp"
 
-#include <vector>
-#include <unordered_map>
+#include <optional>
 #include <string>
+#include <unordered_map>
+#include <vector>
 
 #include <GL/glew.h>
 
@@ -92,6 +93,10 @@ struct Metadata {
         return classification_draw_priorities[m_classification];
     }
 
+    inline bool operator==(const Metadata& other) const {
+        return m_classification == other.m_classification;
+    }
+
     Classification m_classification;
     GLbyte m_line_width = 1;
 
@@ -111,8 +116,26 @@ struct Node {
         : m_coord(coord), m_metadata(tags)
     {}
 
+    inline bool operator==(const Node& other) const {
+        return m_coord == other.m_coord && m_metadata == other.m_metadata;
+    }
+
+/*    void swap(const Node& other) {
+        glm::vec2 aux_coord = other.m_coord;
+        Metadata aux_metadata = other.m_metadata;
+        other.m_coord = m_coord;
+        other.m_metadata = m_metadata;
+        m_coord = aux_coord;
+        m_metadata = aux_metadata;
+    }*/
+    
     glm::vec2 m_coord;
     Metadata m_metadata;
+};
+
+enum WindingOrder {
+    CLOCKWISE,
+    COUNTER_CLOCKWISE,
 };
 
 class Way : public BBox {
@@ -166,13 +189,23 @@ public:
     }
     
 private:
+    bool is_area() const;
+    std::optional<std::vector<GLuint>> triangulate_polygon();
+
+    size_t triangle_count() const {
+        return m_nodes.size() - 3;
+    }
+
+    WindingOrder get_winding_order() const;
+
     std::vector<Node> m_nodes;
     Metadata m_metadata;
 
-    GLuint m_vao = 0, m_vbo = 0;
+    GLuint m_vao = 0, m_vbo = 0, m_ebo = 0;
 
     Id m_id;
 
     std::unordered_map<std::string, std::string> m_tags;
+    std::optional<std::vector<GLuint>> m_indices = std::nullopt;
 };
 

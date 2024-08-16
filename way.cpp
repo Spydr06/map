@@ -3,8 +3,10 @@
 #include <GL/glew.h>
 
 #include <algorithm>
+#include <numeric>
 #include <string>
 #include <unordered_map>
+#include <iostream>
 
 const DrawPriority classification_draw_priorities[] {
     DrawPriority::BUILDING, // UNKNOWN
@@ -170,6 +172,14 @@ void Way::create_buffers() {
     assert(m_vao != 0);
     assert(m_vbo != 0);
 
+    if((m_indices = triangulate_polygon())) {
+        glGenBuffers(1, &m_ebo);
+        assert(m_ebo != 0);
+
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_ebo);
+        glBufferData(GL_ELEMENT_ARRAY_BUFFER, m_indices->size() * sizeof(GLint), &(*m_indices)[0], GL_STATIC_DRAW);
+    }
+
     glBindBuffer(GL_ARRAY_BUFFER, m_vbo);
     glBufferData(GL_ARRAY_BUFFER, m_nodes.size() * sizeof(Node), &m_nodes[0], GL_STATIC_DRAW);
 
@@ -180,6 +190,9 @@ void Way::create_buffers() {
     glEnableVertexAttribArray(1);
 
     glBindBuffer(GL_ARRAY_BUFFER, 0);
+    if(m_ebo)
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+
     glBindVertexArray(0);
 
 /*    if(m_id == 270084823) {
@@ -197,13 +210,112 @@ void Way::create_buffers() {
 
 void Way::draw_buffers() {
     glBindVertexArray(m_vao);
-    glLineWidth(m_metadata.m_line_width);
-    glDrawArrays(GL_LINE_STRIP, 0, m_nodes.size());
+    if(m_ebo) {
+        glDrawElements(GL_TRIANGLES, m_indices->size(), GL_UNSIGNED_INT, &(*m_indices)[0]);
+    }
+    else {
+        glLineWidth(m_metadata.m_line_width);
+        glDrawArrays(GL_LINE_STRIP, 0, m_nodes.size());
+    }
 }
 
 void Way::draw_highlighted_buffers() {
     glBindVertexArray(m_vao);
     glLineWidth(4);
     glDrawArrays(GL_LINE_STRIP, 0, m_nodes.size());
+}
+
+bool Way::is_area() const {
+    return (m_tags.find("area") != m_tags.end() || m_metadata.m_classification == Metadata::Classification::LANDUSE_FOREST) && m_nodes.front() == m_nodes.back();
+}
+
+static inline float cross_product_z(glm::vec2 a, glm::vec2 b) {
+    return a.x * b.y - a.y * b.x;
+}
+
+static inline bool is_point_in_triangle(glm::vec2 p, glm::vec2 a, glm::vec2 b, glm::vec2 c) {
+    glm::vec2 ab = b - a, bc = c - b, ca = a - c;
+    glm::vec2 ap = p - a, bp = p - b, cp = p - c;
+
+    return cross_product_z(ab, ap) <= 0.0f && cross_product_z(bc, bp) <= 0.0f && cross_product_z(ca, cp) <= 0.0f;
+}
+
+std::optional<std::vector<GLuint>> Way::triangulate_polygon() {
+    if(!is_area() || triangle_count() < 3)
+        return std::nullopt;
+
+    if(get_winding_order() != WindingOrder::CLOCKWISE)
+        std::reverse(m_nodes.begin(), m_nodes.end());
+
+    GLuint vertices_count = m_nodes.front() == m_nodes.back() ? m_nodes.size() - 1 : m_nodes.size();
+
+    std::vector<GLuint> remaining_indices(vertices_count); // TODO: maybe set<int>?
+    std::iota(remaining_indices.begin(), remaining_indices.end(), 0);
+
+    std::vector<GLuint> indices(triangle_count() * 3);
+    
+    while(remaining_indices.size() > 3) {
+        bool ear_found = false;
+
+        for(size_t i = 0; i < remaining_indices.size(); i++) {
+            GLuint a = remaining_indices[i];
+            GLuint b = remaining_indices[(i + remaining_indices.size() - 1) % remaining_indices.size()];
+            GLuint c = remaining_indices[(i + 1) % remaining_indices.size()];
+
+            glm::vec2 va = m_nodes[a].m_coord;
+            glm::vec2 vb = m_nodes[b].m_coord;
+            glm::vec2 vc = m_nodes[c].m_coord;
+
+            if(cross_product_z(vb - va, vc - va) < 0.0f)
+                continue;
+
+            bool is_ear = true;
+
+            for(GLuint j = 0; j < vertices_count; j++) {
+                if(j == a || j == b || j == c)
+                    continue;
+
+                glm::vec2 p = m_nodes[j].m_coord;
+
+                if(is_point_in_triangle(p, vb, va, vc)) {
+                    is_ear = false;
+                    break;
+                }
+            }
+
+            if(is_ear) {
+                indices.push_back(b);
+                indices.push_back(a);
+                indices.push_back(c);
+
+                remaining_indices.erase(remaining_indices.begin() + i);
+                ear_found = true;
+                break;
+            }
+        }
+
+        if(!ear_found) {
+            std::cerr << "way " << m_id << ": no suitable polygon" << std::endl;
+            return std::nullopt;
+        }
+    }
+
+    indices.push_back(remaining_indices[0]);
+    indices.push_back(remaining_indices[1]);
+    indices.push_back(remaining_indices[2]);
+
+    return indices;
+}
+
+WindingOrder Way::get_winding_order() const {
+    double sum = 0.0f;
+    for(size_t i = 0; i < m_nodes.size(); i++) {
+        glm::vec2 cur = m_nodes[i].m_coord;
+        glm::vec2 next = m_nodes[(i + 1) % m_nodes.size()].m_coord;
+
+        sum += (next.x - cur.x) * (next.y - cur.y);
+    }
+
+    return sum > 0.0 ? WindingOrder::CLOCKWISE : WindingOrder::COUNTER_CLOCKWISE;
 }
 

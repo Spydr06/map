@@ -40,5 +40,6 @@ private:
     Viewport m_viewport;
     InputState m_input_state;
 
+    bool m_disable_fill = false;
 };
 

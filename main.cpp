@@ -79,7 +79,14 @@ auto main(int argc, char** argv) -> int {
     context = std::make_unique<RenderContext>(map, window_size);
     context->add_element(std::make_shared<Overlay>());
 
-    glfwSetScrollCallback(window, [](GLFWwindow*, [[maybe_unused]] double xoffset, double yoffset){
+    glfwSetScrollCallback(window, [](GLFWwindow*, double xoffset, double yoffset){
+        auto& io = ImGui::GetIO();
+
+        if(io.WantCaptureMouse) {
+            io.AddMouseWheelEvent(xoffset, yoffset);
+            return;
+        }
+
         auto& scale = context->get_viewport().get_scale_factor();
         scale += scale * yoffset * 0.1;
     });
