@@ -52,7 +52,7 @@ void Map::draw_scene(Viewport& viewport, InputState& input) {
     auto view_box = viewport.viewport_bbox();
 
     m_shader->use();
-    viewport.upload_uniforms(m_shader->id(), input.window_size);
+    viewport.upload_uniforms(*m_shader, input.window_size);
 
     auto scale = viewport.get_scale_factor();
 
@@ -62,7 +62,8 @@ void Map::draw_scene(Viewport& viewport, InputState& input) {
 
     if(m_selected_way) {
         m_selection_shader->use();
-        viewport.upload_uniforms(m_selection_shader->id(), input.window_size);
+        m_selection_shader->upload_uniform("u_Resolution", input.window_size);
+        viewport.upload_uniforms(*m_selection_shader, input.window_size);
 
         m_selected_way->draw_highlighted_buffers();
     }

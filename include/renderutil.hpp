@@ -31,6 +31,10 @@ public:
         return m_id;
     }
 
+    inline void upload_uniform(const std::string& uniform, glm::vec2 value) const {
+        glUniform2f(glGetUniformLocation(m_id, uniform.c_str()), value.x, value.y);
+    }
+
 private:
     std::optional<std::string> m_err;
     int m_id;

@@ -68,10 +68,10 @@ void RenderContext::draw_scene() {
     }
 }
 
-void Viewport::upload_uniforms(GLuint shader_id, glm::vec2 window_size) {
+void Viewport::upload_uniforms(const Shader& shader, glm::vec2 window_size) {
     auto scale = get_scale(window_size);
-    glUniform2f(glGetUniformLocation(shader_id, "u_Scale"), scale.x, scale.y);
-    glUniform2f(glGetUniformLocation(shader_id, "u_Translation"), m_translation.x, m_translation.y);
+    shader.upload_uniform("u_Scale", scale);
+    shader.upload_uniform("u_Translation", m_translation);
 }
 
 static int load_shader(GLenum type, std::istream& input, std::optional<std::string>& err) {

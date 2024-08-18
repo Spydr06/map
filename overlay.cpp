@@ -26,7 +26,7 @@ void Overlay::draw_scene(Viewport& viewport, InputState& input) {
 //    auto view_box = viewport.viewport_bbox();
 
     m_shader->use();
-    viewport.upload_uniforms(m_shader->id(), input.window_size);
+    viewport.upload_uniforms(*m_shader, input.window_size);
 
     // TODO: draw overlay
 };

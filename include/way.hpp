@@ -192,8 +192,12 @@ private:
     bool is_area() const;
     std::optional<std::vector<GLuint>> triangulate_polygon();
 
-    size_t triangle_count() const {
-        return m_nodes.size() - 3;
+    inline size_t relevant_vertices_count() const {
+        return m_nodes.size() > 1 && m_nodes.front() == m_nodes.back() ? m_nodes.size() - 1 : m_nodes.size();
+    }
+
+    inline size_t triangle_count() const {
+        return relevant_vertices_count() - 2;
     }
 
     WindingOrder get_winding_order() const;

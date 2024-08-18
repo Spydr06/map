@@ -8,6 +8,8 @@
 
 #include "bbox.hpp"
 
+class Shader;
+
 class Viewport {
 public:
     Viewport(std::pair<glm::vec2, glm::vec2> minmax_coords) 
@@ -16,7 +18,7 @@ public:
         default_translation();
     }
 
-    void upload_uniforms(GLuint shader_id, glm::vec2 window_size);
+    void upload_uniforms(const Shader& shader, glm::vec2 window_size);
 
     inline void move(glm::vec2 offset, glm::vec2 window_size) {
         m_translation += (offset / get_scale(window_size) / window_size * glm::vec2(2));

@@ -4,9 +4,12 @@
 #include <GL/glew.h>
 
 #include <algorithm>
+#include <cstdint>
+#include <iomanip>
 #include <numeric>
 #include <string>
 #include <unordered_map>
+#include <fstream>
 
 const DrawPriority classification_draw_priorities[] {
     DrawPriority::BUILDING, // UNKNOWN
@@ -195,8 +198,7 @@ void Way::create_buffers() {
 
     glBindVertexArray(0);
 
-/*    if(m_id == 270084823) {
-        std::cout << "here" << std::endl;
+  /*  if(m_id == 119742686) {
 
         std::ofstream output("extract.txt");
         
@@ -210,13 +212,12 @@ void Way::create_buffers() {
 
 void Way::draw_buffers() {
     glBindVertexArray(m_vao);
-    if(m_ebo) {
+    glLineWidth(m_metadata.m_line_width);
+    
+    if(m_ebo)
         glDrawElements(GL_TRIANGLES, m_indices->size(), GL_UNSIGNED_INT, &(*m_indices)[0]);
-    }
-    else {
-        glLineWidth(m_metadata.m_line_width);
+    else
         glDrawArrays(GL_LINE_STRIP, 0, m_nodes.size());
-    }
 }
 
 void Way::draw_highlighted_buffers() {
@@ -226,7 +227,12 @@ void Way::draw_highlighted_buffers() {
 }
 
 bool Way::is_area() const {
-    return (m_tags.find("area") != m_tags.end() || m_metadata.m_classification == Metadata::Classification::LANDUSE_FOREST) && m_nodes.front() == m_nodes.back();
+    return (
+        m_tags.find("area") != m_tags.end() || 
+        m_metadata.m_classification == Metadata::Classification::LANDUSE_FOREST ||
+//        m_metadata.m_classification == Metadata::Classification::LANDUSE_AGRICULTURAL ||
+        m_metadata.m_classification == Metadata::Classification::LAKE
+    ) && m_nodes.front() == m_nodes.back();
 }
 
 static inline float cross_product_z(glm::vec2 a, glm::vec2 b) {
@@ -240,6 +246,10 @@ static inline bool is_point_in_triangle(glm::vec2 p, glm::vec2 a, glm::vec2 b, g
     return cross_product_z(ab, ap) <= 0.0f && cross_product_z(bc, bp) <= 0.0f && cross_product_z(ca, cp) <= 0.0f;
 }
 
+static inline GLuint get_index(const std::vector<GLuint>& indices, std::int64_t i) {
+    return indices[(i + indices.size()) % indices.size()];
+}
+
 std::optional<std::vector<GLuint>> Way::triangulate_polygon() {
     if(!is_area() || triangle_count() < 3)
         return std::nullopt;
@@ -247,9 +257,7 @@ std::optional<std::vector<GLuint>> Way::triangulate_polygon() {
     if(get_winding_order() != WindingOrder::CLOCKWISE)
         std::reverse(m_nodes.begin(), m_nodes.end());
 
-    GLuint vertices_count = m_nodes.front() == m_nodes.back() ? m_nodes.size() - 1 : m_nodes.size();
-
-    std::vector<GLuint> remaining_indices(vertices_count); // TODO: maybe set<int>?
+    std::vector<GLuint> remaining_indices(relevant_vertices_count()); // TODO: maybe set<int>?
     std::iota(remaining_indices.begin(), remaining_indices.end(), 0);
 
     std::vector<GLuint> indices(triangle_count() * 3);
@@ -257,10 +265,10 @@ std::optional<std::vector<GLuint>> Way::triangulate_polygon() {
     while(remaining_indices.size() > 3) {
         bool ear_found = false;
 
-        for(size_t i = 0; i < remaining_indices.size(); i++) {
-            GLuint a = remaining_indices[i];
-            GLuint b = remaining_indices[(i + remaining_indices.size() - 1) % remaining_indices.size()];
-            GLuint c = remaining_indices[(i + 1) % remaining_indices.size()];
+        for(std::int64_t i = 0; i < static_cast<std::int64_t>(remaining_indices.size()); i++) {
+            GLuint a = get_index(remaining_indices, i);
+            GLuint b = get_index(remaining_indices, i - 1);
+            GLuint c = get_index(remaining_indices, i + 1);
 
             glm::vec2 va = m_nodes[a].m_coord;
             glm::vec2 vb = m_nodes[b].m_coord;
@@ -271,7 +279,7 @@ std::optional<std::vector<GLuint>> Way::triangulate_polygon() {
 
             bool is_ear = true;
 
-            for(GLuint j = 0; j < vertices_count; j++) {
+            for(GLuint j = 0; j < relevant_vertices_count(); j++) {
                 if(j == a || j == b || j == c)
                     continue;
 
