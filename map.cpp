@@ -1,10 +1,10 @@
 #include "map.hpp"
 #include "bvh.hpp"
 #include "way.hpp"
+#include "log.hpp"
 
 #include <cmath>
 #include <fstream>
-#include <iostream>
 
 #include <imgui.h>
 
@@ -14,13 +14,13 @@ Map::Map()
     auto vertex_source = std::ifstream("shaders/map_vertex.glsl");
     auto fragment_source = std::ifstream("shaders/map_fragment.glsl");
     if(vertex_source.bad() || fragment_source.bad()) {
-        std::cerr << "Shader error: Shader file not found" << std::endl;
+        mlog::logln(mlog::ERROR, "Shader error: Shader file not found");
         std::exit(1);
     }
 
     m_shader = std::make_unique<Shader>(vertex_source, fragment_source);
     if(auto err = m_shader->get_error()) {
-        std::cerr << "Shader error:" << std::endl << *err << std::endl;
+        mlog::logln(mlog::ERROR, "Shader error: %s", err->c_str());
         std::exit(1);
     }
 
@@ -28,13 +28,13 @@ Map::Map()
     auto sel_vertex_source = std::ifstream("shaders/map_selected_vertex.glsl");
     auto sel_fragment_source = std::ifstream("shaders/map_selected_fragment.glsl");
     if(sel_vertex_source.bad() || sel_fragment_source.bad()) {
-        std::cerr << "Shader error: Shader file not found" << std::endl;
+        mlog::logln(mlog::ERROR, "Shader error: Shader file not found");
         std::exit(1);
     }
 
     m_selection_shader = std::make_unique<Shader>(sel_vertex_source, sel_fragment_source);
     if(auto err = m_selection_shader->get_error()) {
-        std::cerr << "Shader error:" << std::endl << *err << std::endl;
+        mlog::logln(mlog::ERROR, "Shader error: %s", err->c_str());
         std::exit(1);
     }
 }

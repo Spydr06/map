@@ -1,12 +1,13 @@
-#include <iostream>
 #include <chrono>
 #include <vector>
 #include <memory>
 
 #include "overlay.hpp"
+#include "log.hpp"
 #include "preprocess.hpp"
 #include "map.hpp"
 #include "rendercontext.hpp"
+#include "renderutil.hpp"
 #include "timer.hpp"
 
 #include <GLFW/glfw3.h>
@@ -20,13 +21,15 @@ constexpr glm::vec2 window_size = glm::vec2(1366, 768);
 std::unique_ptr<RenderContext> context = nullptr;
 
 auto main(int argc, char** argv) -> int {
+    mlog::init_from_env("MAP_LOG");
+
     if(argc != 2) {
-        std::cerr << "Usage: " << argv[0] << " <osm xml file>" << std::endl;
+        mlog::logln(mlog::ERROR, "Usage: %s <osm xml file>", argv[0]);
         return 1;
     }
 
     if(!glfwInit()) {
-        std::cerr << "Error initializing GLFW" << std::endl;
+        mlog::logln(mlog::ERROR, "Error initializing GLFW");
         return 1;
     }
 
@@ -35,14 +38,14 @@ auto main(int argc, char** argv) -> int {
 
     GLFWwindow* window = glfwCreateWindow(window_size.x, window_size.y, "Map", nullptr, nullptr);
     if(!window) {
-        std::cerr << "Error creating GLFW window" << std::endl;
+        mlog::logln(mlog::ERROR, "Error creating GLFW window");
         glfwTerminate();
         return 1;
     }
 
     auto timers = std::vector({
         Timer(std::chrono::seconds(1), [](auto& frame_time){
-            std::cout << "fps: " << std::chrono::seconds(1) / frame_time << std::endl;
+            mlog::logln(mlog::DEBUG, "fps: %ld", std::chrono::seconds(1) / frame_time);
         })
     });
 
@@ -54,14 +57,14 @@ auto main(int argc, char** argv) -> int {
     glfwSwapInterval(0);
 
     if(GLenum err = glewInit()) {
-        std::cout << "OpenGL error: " << glewGetErrorString(err) << std::endl;
+        mlog::logln(mlog::ERROR, "OpenGL error: %s", glewGetErrorString(err));
         glfwTerminate();
         return 1;
     }
 
     auto map = std::make_shared<Map>();
 
-    std::cout << "Preprocessing data..." << std::endl;
+    mlog::logln(mlog::INFO, "Preprocessing data...");
     if(int err = preprocess_data(argv[1], map)) {
         return err;
     };

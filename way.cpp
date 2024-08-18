@@ -1,4 +1,5 @@
 #include "way.hpp"
+#include "log.hpp"
 
 #include <GL/glew.h>
 
@@ -6,7 +7,6 @@
 #include <numeric>
 #include <string>
 #include <unordered_map>
-#include <iostream>
 
 const DrawPriority classification_draw_priorities[] {
     DrawPriority::BUILDING, // UNKNOWN
@@ -295,7 +295,7 @@ std::optional<std::vector<GLuint>> Way::triangulate_polygon() {
         }
 
         if(!ear_found) {
-            std::cerr << "way " << m_id << ": no suitable polygon" << std::endl;
+            mlog::logln(mlog::WARN, "Way %lu: no suitable polygon", m_id);
             return std::nullopt;
         }
     }

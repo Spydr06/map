@@ -1,11 +1,11 @@
 #include "preprocess.hpp"
-#include "way.hpp"
 #include "renderutil.hpp"
+#include "way.hpp"
+#include "log.hpp"
 
 #include <cassert>
 #include <cmath>
 #include <fstream>
-#include <iostream>
 #include <cstring>
 
 #include <expat.h>
@@ -105,13 +105,13 @@ static void XMLCALL leave_element(void* user_data, const XML_Char* name) {
 auto preprocess_data(const char* xml_path, std::shared_ptr<Map> map) -> int {
     auto input = std::ifstream(xml_path);
     if(!input.good()) {
-        std::cerr << "Could not open `" << xml_path << "`" << std::endl;
+        mlog::logln(mlog::ERROR, "Could not open `%s`", xml_path);
         return 1;
     }
     
     auto parser = XML_ParserCreate(nullptr);
     if(!parser) {
-        std::cerr << "Could not create XML parser" << std::endl;
+        mlog::logln(mlog::ERROR, "Could not create XML parser");
         return 1;
     }
 
@@ -126,27 +126,26 @@ auto preprocess_data(const char* xml_path, std::shared_ptr<Map> map) -> int {
     while(!input.eof()) {
         void* const buf = XML_GetBuffer(parser, buffer_size);
         if(!buf) {
-            std::cerr << "Could not allocate buffer of size " << buffer_size << std::endl;
+            mlog::logln(mlog::ERROR, "Could not allocate buffer of size %d", buffer_size);
             ret = 1;
             goto cleanup;
         }
     
-        std::cout << '\r' << input.tellg() / 1024 / 1024 << " MiB parsed";
-        std::cout.flush();
+        mlog::log(mlog::INFO, "\r%zu MiB parsed", input.tellg() / 1024 / 1024);
 
         const auto bytes_read = input.readsome((char*) buf, buffer_size);
         if(!bytes_read)
             break;
 
         if(XML_ParseBuffer(parser, bytes_read, input.eof()) == XML_STATUS_ERROR) {
-            std::cerr << "Parse error at line " << XML_GetCurrentLineNumber(parser) << ":" << std::endl
-                << XML_ErrorString(XML_GetErrorCode(parser)) << std::endl;
+            mlog::logln(mlog::ERROR, "Parse error at line %lu:\n%s", XML_GetCurrentLineNumber(parser),
+                XML_ErrorString(XML_GetErrorCode(parser)));
             ret = 1;
             goto cleanup;
         }
     }
 
-    std::cout << std::endl << "done." << std::endl;
+    mlog::logln(mlog::INFO, "done.");
 
 cleanup:
     XML_ParserFree(parser);
