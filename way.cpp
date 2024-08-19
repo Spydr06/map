@@ -175,7 +175,8 @@ void Way::create_buffers() {
     assert(m_vao != 0);
     assert(m_vbo != 0);
 
-    if((m_indices = triangulate_polygon())) {
+//    if((m_indices = triangulate_polygon())) {
+    if(false) {
         glGenBuffers(1, &m_ebo);
         assert(m_ebo != 0);
 

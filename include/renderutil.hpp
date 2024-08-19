@@ -6,9 +6,58 @@
 #include <cmath>
 
 #include <GL/glew.h>
+#include <utility>
 
 #include "inputstate.hpp"
 #include "viewport.hpp"
+
+class Texture {
+public:
+    Texture(GLuint width, GLuint height, GLenum format = GL_RGB, GLenum data_type = GL_UNSIGNED_BYTE);
+    ~Texture();
+
+    inline void bind(GLenum slot = GL_TEXTURE_2D) const {
+        glBindTexture(slot, m_id);
+    }
+
+    inline GLuint id() const {
+        return m_id;
+    }
+
+    inline std::pair<GLuint, GLuint> size() {
+        return std::make_pair(m_width, m_height);
+    }
+
+private:
+    GLuint m_id;
+    GLuint m_width, m_height;
+};
+
+class Framebuffer {
+public:
+    Framebuffer(GLuint width, GLuint height);
+    ~Framebuffer();
+
+    inline void bind() const {
+        glBindFramebuffer(GL_FRAMEBUFFER, m_id);
+    }
+
+    inline GLuint id() const {
+        return m_id;
+    }
+
+    inline GLuint texture_id() const {
+        return m_texture->id();
+    }
+
+    inline std::pair<GLuint, GLuint> texture_size() const {
+        return m_texture->size();
+    }
+
+private:
+    GLuint m_id;
+    std::unique_ptr<Texture> m_texture;
+};
 
 class Shader {
 public:
@@ -27,7 +76,7 @@ public:
         glUseProgram(m_id);
     }
 
-    inline int id() const {
+    inline GLuint id() const {
         return m_id;
     }
 
@@ -37,7 +86,7 @@ public:
 
 private:
     std::optional<std::string> m_err;
-    int m_id;
+    GLuint m_id;
 };
 
 class RenderElement {

@@ -10,6 +10,7 @@
 #include "bvh.hpp"
 #include "inputstate.hpp"
 #include "renderutil.hpp"
+#include "inspector.hpp"
 #include "way.hpp"
 
 class Map : public BBox, public RenderElement {
@@ -38,6 +39,8 @@ private:
     std::unique_ptr<BVH> m_bvh;
     std::unique_ptr<Shader> m_shader;
     std::unique_ptr<Shader> m_selection_shader;
+    
+    Inspector m_inspector;
 
     std::size_t m_max_bvh_depth, m_render_bvh_depth;
     std::shared_ptr<Way> m_selected_way;

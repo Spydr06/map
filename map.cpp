@@ -9,7 +9,7 @@
 #include <imgui.h>
 
 Map::Map()
-    : m_bvh(nullptr) 
+    : m_bvh(nullptr), m_inspector()
 {
     auto vertex_source = std::ifstream("shaders/map_vertex.glsl");
     auto fragment_source = std::ifstream("shaders/map_fragment.glsl");
@@ -74,17 +74,7 @@ void Map::draw_ui(InputState& input) {
     m_selected_way = way;
     
     if(way != nullptr) {
-        ImGui::Begin("Inspector");
-
-        ImGui::Text("id: %lu", way->get_id());
-
-        ImGui::Separator();
-
-        for(auto& [ key, value ] : way->get_tags()) {
-            ImGui::Text("%s := %s", key.c_str(), value.c_str());
-        }
-
-        ImGui::End();
+        m_inspector.inspect_ui(way);
     }
 }
 

@@ -76,7 +76,7 @@ auto main(int argc, char** argv) -> int {
     ImGui_ImplOpenGL3_Init("#version 450 core");
     
     auto& io = ImGui::GetIO();
-    // io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
+    io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
     // io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
 
     context = std::make_unique<RenderContext>(map, window_size);
@@ -156,10 +156,12 @@ auto main(int argc, char** argv) -> int {
 
         context->draw_scene();
         
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
         ImGui_ImplOpenGL3_NewFrame();
         ImGui_ImplGlfw_NewFrame();
         ImGui::NewFrame();
-
+        
         context->draw_ui();
 
         ImGui::Render();
