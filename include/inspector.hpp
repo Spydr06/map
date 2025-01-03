@@ -4,12 +4,14 @@
 
 #include <memory>
 
+class Map;
+
 class Inspector {
 public:
     Inspector() 
     {}
 
-    void inspect_ui(std::shared_ptr<Way> way);
+    void inspect_ui(Map* map, std::shared_ptr<Way> way);
 private:
 
 };

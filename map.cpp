@@ -74,7 +74,7 @@ void Map::draw_ui(InputState& input) {
     m_selected_way = way;
     
     if(way != nullptr) {
-        m_inspector.inspect_ui(way);
+        m_inspector.inspect_ui(this, way);
     }
 }
 

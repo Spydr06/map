@@ -3,7 +3,7 @@ IMGUI_DIR ?= ./imgui
 
 BINARY ?= $(BUILD_DIR)/map
 
-LIBRARIES := expat glfw3 glew glm
+LIBRARIES := expat glfw3 glew glm libcurl librsvg-2.0 cairo
 
 SOURCES := $(wildcard $(IMGUI_DIR)/*.cpp) $(IMGUI_DIR)/backends/imgui_impl_glfw.cpp $(IMGUI_DIR)/backends/imgui_impl_opengl3.cpp $(wildcard *.cpp) 
 OBJECTS := $(patsubst %.cpp, $(BUILD_DIR)/%.o, $(SOURCES))

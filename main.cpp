@@ -9,6 +9,7 @@
 #include "rendercontext.hpp"
 #include "renderutil.hpp"
 #include "timer.hpp"
+#include "taginfo.hpp"
 
 #include <GLFW/glfw3.h>
 
@@ -23,8 +24,8 @@ std::unique_ptr<RenderContext> context = nullptr;
 auto main(int argc, char** argv) -> int {
     mlog::init_from_env("MAP_LOG");
 
-    if(argc != 2) {
-        mlog::logln(mlog::ERROR, "Usage: %s <osm xml file>", argv[0]);
+    if(argc < 2 || argc > 3) {
+        mlog::logln(mlog::ERROR, "Usage: %s <osm xml file> [<taginfo xml file>]", argv[0]);
         return 1;
     }
 
@@ -63,6 +64,10 @@ auto main(int argc, char** argv) -> int {
     }
 
     auto map = std::make_shared<Map>();
+
+    if(int err; argc == 3 && (err = load_taginfo(argv[2], map))) {
+        return err;
+    }
 
     mlog::logln(mlog::INFO, "Preprocessing data...");
     if(int err = preprocess_data(argv[1], map)) {
