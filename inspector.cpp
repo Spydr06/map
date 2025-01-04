@@ -19,6 +19,7 @@ void Inspector::inspect_ui(Map* map, std::shared_ptr<Way> way) {
 
     for(auto& [ key, value ] : way->get_tags()) {
         for(auto* tag : map->get_taginfos(key, value)) {
+            tag->load_image();
             ImVec2 size(tag->m_dimensions.x, tag->m_dimensions.y);
             ImGui::Image((void*)(uintptr_t) tag->m_texture_id, size);
         }

@@ -51,7 +51,9 @@ static void XMLCALL enter_element(void* user_data, const XML_Char* name, const X
     }
     else if(data->m_current_way != nullptr && std::memcmp(name, "tag", 3) == 0) {
         assert(atts[4] == nullptr && atts[0][0] == 'k' && atts[2][0] == 'v');
-        data->m_current_way->add_tag(atts[1], atts[3]);
+        auto* key = atts[1];
+        auto* value = atts[3]; 
+        data->m_current_way->add_tag(key, value);
     }
     else if(std::memcmp(name, "bounds", 5) == 0) {
         const XML_Char *min_lon = nullptr, *max_lon = nullptr, *min_lat = nullptr, *max_lat = nullptr;

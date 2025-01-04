@@ -9,6 +9,7 @@
 #include <memory>
 #include <fstream>
 #include <cstring>
+#include <iostream>
 
 #include <curl/curl.h>
 #include <curl/easy.h>
@@ -121,8 +122,36 @@ void Map::register_taginfo(std::string& key, std::string& value, std::string& ic
     m_taginfo[key][value].m_icon_url = icon_url;
 }
 
+void parse_value(const std::string& value, std::string& tag, std::vector<std::string>& params) {
+    auto start = value.begin(), end = value.end();
+    auto tag_end = std::find(start, end, '[');
+    tag.assign(start, tag_end);
+
+    while(tag_end != end) {
+        auto param_start = tag_end + 1;
+        auto param_end = std::find(param_start, end, ']');
+
+        if(param_end != end) {
+            params.push_back(std::string(param_start, param_end));
+            tag_end = param_end + 1;
+        }
+    }
+}
+
 CachedTag* Map::get_taginfo(const std::string& key, const std::string& value) {
-    auto it = m_taginfo[key].find(value);
+    std::string tag;
+    std::vector<std::string> params;
+    parse_value(value, tag, params);
+
+    for(auto& param : params) {
+        tag += "-" + param;
+    }
+
+    if(key == "traffic_sign") {
+        mlog::logln(mlog::DEBUG, "sign: %s", tag.c_str());
+    }
+
+    auto it = m_taginfo[key].find(tag);
     return it == m_taginfo[key].end() ? nullptr : &it->second;
 }
 
