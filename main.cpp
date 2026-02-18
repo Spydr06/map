@@ -2,6 +2,7 @@
 #include <vector>
 #include <memory>
 
+#include "heightmap.hpp"
 #include "overlay.hpp"
 #include "log.hpp"
 #include "preprocess.hpp"
@@ -12,6 +13,7 @@
 #include "taginfo.hpp"
 
 #include <GLFW/glfw3.h>
+#include <getopt.h>
 
 #include <imgui.h>
 #include <backends/imgui_impl_glfw.h>
@@ -24,10 +26,30 @@ std::unique_ptr<RenderContext> context = nullptr;
 auto main(int argc, char** argv) -> int {
     mlog::init_from_env("MAP_LOG");
 
-    if(argc < 2 || argc > 3) {
-        mlog::logln(mlog::ERROR, "Usage: %s <osm xml file> [<taginfo xml file>]", argv[0]);
+    const char *taginfo_path = nullptr;
+    const char *heightmap_path = nullptr;
+
+    int opt;
+    while((opt = getopt(argc, argv, "t:h:")) != EOF) {
+        switch(opt) {
+        case 'h':
+            heightmap_path = optarg;
+            break;
+        case 't':
+            taginfo_path = optarg;
+            break;
+        default:
+            mlog::logln(mlog::ERROR, "Usage: %s <osm xml file> [-t <taginfo xml file>] [-h <heightmap geotiff>]", argv[0]);
+            return 1;
+        }
+    }
+
+    if(optind != argc - 1) {
+        mlog::logln(mlog::ERROR, "Usage: %s <osm xml file> [-t <taginfo xml file>] [-h <heightmap geotiff>]", argv[0]);
         return 1;
     }
+
+    const char *osm_path = argv[optind];
 
     if(!glfwInit()) {
         mlog::logln(mlog::ERROR, "Error initializing GLFW");
@@ -36,6 +58,8 @@ auto main(int argc, char** argv) -> int {
 
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 5);
+
+    glfwWindowHint(GLFW_SCALE_FRAMEBUFFER, GLFW_TRUE);
 
     GLFWwindow* window = glfwCreateWindow(window_size.x, window_size.y, "Map", nullptr, nullptr);
     if(!window) {
@@ -65,12 +89,22 @@ auto main(int argc, char** argv) -> int {
 
     auto map = std::make_shared<Map>();
 
-    if(int err; argc == 3 && (err = load_taginfo(argv[2], map))) {
+    mlog::logln(mlog::INFO, "Preprocessing data...");
+
+    if(int err; taginfo_path && (err = load_taginfo(taginfo_path, map))) {
         return err;
     }
 
-    mlog::logln(mlog::INFO, "Preprocessing data...");
-    if(int err = preprocess_data(argv[1], map)) {
+    if(heightmap_path) {
+        auto heightmap = std::make_shared<Heightmap>(std::string(heightmap_path));
+        if(int err = heightmap->preprocess()) {
+            return err;
+        }
+
+        map->set_heightmap(heightmap);
+    }
+
+    if(int err = preprocess_data(osm_path, map)) {
         return err;
     };
 
@@ -148,7 +182,11 @@ auto main(int argc, char** argv) -> int {
             continue;
         }
 
-        auto& window_size = context->get_input_state().window_size;
+        glm::vec2 scale;
+        glfwGetWindowContentScale(window, &scale.x, &scale.y);
+
+        glm::vec2 window_size = context->get_input_state().window_size * scale;
+
         glViewport(0, 0, window_size.x, window_size.y);
         
         glClearColor(0.0, 0.0, 0.0, 1.0);
@@ -181,7 +219,7 @@ auto main(int argc, char** argv) -> int {
         }
         
         glfwSwapBuffers(window);
-        glfwPollEvents();
+        glfwWaitEvents();
 
         auto now = std::chrono::steady_clock::now();
         frame_time = now - last_time;

@@ -5,7 +5,6 @@
 #include <GL/glew.h>
 
 #include <cassert>
-#include <cstdlib>
 #include <sstream>
 #include <iostream>
 

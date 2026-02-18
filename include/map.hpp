@@ -13,6 +13,7 @@
 #include "renderutil.hpp"
 #include "inspector.hpp"
 #include "way.hpp"
+#include "heightmap.hpp"
 
 struct CachedTag {
     enum State {
@@ -94,7 +95,13 @@ public:
 
     std::unordered_map<std::string, std::unordered_map<std::string, CachedTag>> m_taginfo{};
 
+    inline auto set_heightmap(std::shared_ptr<Heightmap> heightmap) {
+        m_heightmap = heightmap;
+    }
+
 private:
+    std::optional<std::shared_ptr<Heightmap>> m_heightmap{};
+
     std::unique_ptr<BVH> m_bvh;
     std::unique_ptr<Shader> m_shader;
     std::unique_ptr<Shader> m_selection_shader;
