@@ -59,7 +59,8 @@ void Map::draw_scene(Viewport& viewport, InputState& input) {
 
     auto scale = viewport.get_scale_factor();
 
-    m_draw_priority = static_cast<DrawPriority>(std::clamp(int(scale * 2 + std::sqrt(scale * 4)), 1, int(DrawPriority::__DRAW_PRIO_LAST)));
+    if(m_auto_priority)
+        m_draw_priority = static_cast<DrawPriority>(std::clamp(int(scale * 2 + std::sqrt(scale * 4)), 1, int(DrawPriority::__DRAW_PRIO_LAST)));
 
     m_bvh->draw(view_box, m_draw_priority, m_render_bvh_depth, 0);
 

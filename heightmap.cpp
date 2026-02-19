@@ -7,6 +7,7 @@
 #include <fstream>
 
 #include <geokeys.h>
+#include <tiff.h>
 #include <tiffio.h>
 #include <xtiffio.h>
 #include <geotiff.h>

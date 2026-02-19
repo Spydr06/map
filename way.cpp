@@ -213,7 +213,7 @@ void Way::create_buffers() {
 
 void Way::draw_buffers() {
     glBindVertexArray(m_vao);
-    glLineWidth(m_metadata.m_line_width);
+    glLineWidth(m_metadata.m_line_width * 2);
     
     if(m_ebo)
         glDrawElements(GL_TRIANGLES, m_indices->size(), GL_UNSIGNED_INT, &(*m_indices)[0]);

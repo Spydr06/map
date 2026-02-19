@@ -11,7 +11,9 @@
 
 // draw priority, in descending order
 enum DrawPriority {
-    MOTORWAY,
+    __DRAW_PRIORITY_FIRST,
+
+    MOTORWAY = __DRAW_PRIORITY_FIRST,
     RAILWAY = MOTORWAY,
     RIVER = MOTORWAY,
     MAJOR_HIGHWAY,

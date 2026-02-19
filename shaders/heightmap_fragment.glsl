@@ -18,6 +18,6 @@ void main() {
         1.0
     );
 
-    frag_Color = vec4(vec3(h), 1.0);
+    frag_Color = vec4(vec3(h * h), 1.0);
 }
 

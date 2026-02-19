@@ -99,6 +99,22 @@ public:
         m_heightmap = heightmap;
     }
 
+    inline void set_draw_priority(DrawPriority priority) {
+        m_draw_priority = priority;
+    }
+
+    inline auto get_draw_priority() {
+        return m_draw_priority;
+    }
+
+    inline void set_auto_priority(bool v) {
+        m_auto_priority = v;
+    }
+
+    inline auto get_auto_priority() {
+        return m_auto_priority;
+    }
+
 private:
     std::optional<std::shared_ptr<Heightmap>> m_heightmap{};
 
@@ -112,5 +128,6 @@ private:
     std::shared_ptr<Way> m_selected_way;
 
     DrawPriority m_draw_priority = DrawPriority::__DRAW_PRIO_LAST;
+    bool m_auto_priority = true;
 };
 

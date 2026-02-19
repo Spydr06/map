@@ -1,6 +1,7 @@
 #include "rendercontext.hpp"
 #include "imgui.h"
 #include "renderutil.hpp"
+#include "way.hpp"
 
 #include <GL/glew.h>
 
@@ -35,9 +36,17 @@ void RenderContext::draw_debug_info() {
     auto scale = m_viewport.get_scale(m_input_state.window_size);
     ImGui::Text("scale: (%f %f) (x%f)", scale.x, scale.y, m_viewport.get_scale_factor());
 
-//    ImGui::Separator();
+    ImGui::Separator();
 
-//    ImGui::SliderInt("BVH drawing depth", &m_bvh_max_depth, 0, m_map->get_max_bvh_depth());
+    auto auto_priority = m_map->get_auto_priority();
+    int draw_priority = m_map->get_draw_priority();
+
+    ImGui::Checkbox("Auto Priority", &auto_priority);
+
+    ImGui::SliderInt("Draw Priority", &draw_priority, __DRAW_PRIORITY_FIRST, __DRAW_PRIO_LAST);
+
+    m_map->set_auto_priority(auto_priority);
+    m_map->set_draw_priority(static_cast<DrawPriority>(draw_priority));
 
     ImGui::Separator();
 

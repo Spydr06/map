@@ -1,6 +1,7 @@
 #pragma once
 
 #include "renderutil.hpp"
+#include "contour.hpp"
 
 #include <xtiffio.h>
 #include <geotiff.h>
@@ -88,6 +89,7 @@ private:
     GTIF *m_gtif;
 
     std::map<uint32_t, std::shared_ptr<HeightmapTile>> m_tiles;
+    std::map<uint32_t, std::shared_ptr<ContourTile>> m_contours;
 
     std::unique_ptr<Shader> m_shader;
 
