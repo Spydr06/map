@@ -121,6 +121,11 @@ auto main(int argc, char** argv) -> int {
     context = std::make_unique<RenderContext>(map, window_size);
     context->add_element(std::make_shared<Overlay>());
 
+    glfwSetWindowContentScaleCallback(window, [](GLFWwindow*, float xscale, float yscale) {
+        auto& io = ImGui::GetIO();
+        io.DisplayFramebufferScale = ImVec2(xscale, yscale);
+    });
+
     glfwSetScrollCallback(window, [](GLFWwindow*, double xoffset, double yoffset){
         auto& io = ImGui::GetIO();
 
@@ -204,6 +209,8 @@ auto main(int argc, char** argv) -> int {
         ImGui_ImplOpenGL3_NewFrame();
         ImGui_ImplGlfw_NewFrame();
         ImGui::NewFrame();
+
+        // ImGui::DockSpaceOverViewport(0, ImGui::GetMainViewport(), ImGuiDockNodeFlags_PassthruCentralNode);
         
         context->draw_ui();
 

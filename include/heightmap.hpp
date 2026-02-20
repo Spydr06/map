@@ -9,9 +9,62 @@
 #include <map>
 #include <vector>
 
+#include <glm/vec4.hpp>
+
 #include "log.hpp"
 
 #define DEFAULT_PIXELS_PER_METER 30
+
+class Heightmap;
+
+class HeightmapRenderMode {
+public:
+    HeightmapRenderMode(const std::string& vertex_shader_path, const std::string& fragment_shader_path);
+    ~HeightmapRenderMode() = default;
+
+    virtual void begin_render(Heightmap& heightmap, Viewport& viewport, InputState& input) = 0;
+    virtual void draw_ui(Heightmap& heightmap) {}
+protected:
+    std::unique_ptr<Shader> m_shader;
+};
+
+class HeightmapAltitudeMode : public HeightmapRenderMode {
+public: 
+    HeightmapAltitudeMode()
+        : HeightmapRenderMode("./shaders/altitude_vertex.glsl", "./shaders/altitude_fragment.glsl")
+    {}
+
+    virtual void begin_render(Heightmap& heightmap, Viewport& viewport, InputState& input) override;
+};
+
+class HeightmapGradientMode : public HeightmapRenderMode {
+public:
+    HeightmapGradientMode()
+        : HeightmapRenderMode("./shaders/gradient_vertex.glsl", "./shaders/gradient_fragment.glsl"),
+          m_brightness(0.1), m_delta(0.01)
+    {}
+
+    virtual void begin_render(Heightmap& heightmap, Viewport& viewport, InputState& input) override;
+    virtual void draw_ui(Heightmap& heightmap) override;
+private:
+    float m_brightness;
+    float m_delta;
+}; 
+
+class HeightmapContourMode : public HeightmapRenderMode {
+public:
+    HeightmapContourMode()
+        : HeightmapRenderMode("./shaders/contour_vertex.glsl", "./shaders/contour_fragment.glsl"),
+          m_color(1.0), m_epsilon(0.1), m_spacing(10.0)
+    {}
+
+    virtual void begin_render(Heightmap& heightmap, Viewport& viewport, InputState& input) override;
+    virtual void draw_ui(Heightmap& heightmap) override;
+private:
+    glm::vec4 m_color;
+    float m_epsilon;
+    float m_spacing;
+};
 
 class HeightmapTile {
 public:
@@ -20,8 +73,6 @@ public:
           m_start(map_project(glm::vec2(min_lon, min_lat))), 
           m_end(map_project(glm::vec2(max_lon, max_lat)))
     {
-        auto [min, max] = std::minmax_element(m_pixels.begin(), m_pixels.end());
-        mlog::logln(mlog::INFO, "min height: %f, max height: %f", *min, *max);
         mlog::logln(mlog::INFO, "mapped: [%f, %f -> %f, %f]", m_start.x, m_start.y, m_end.x, m_end.y);
 
         create_texture();
@@ -40,8 +91,8 @@ public:
         if(!contains_pos(pos))
             return -1.f;
 
-        double x = ((pos.x - m_start.x) / (m_end.x - m_start.x)) * m_width;
-        double y = ((pos.y - m_end.y) / (m_start.y - m_end.y)) * m_height;
+        double x = (1.0 - (pos.y - m_start.y) / (m_end.y - m_start.y)) * m_width;
+        double y = (1.0 - (pos.x - m_start.x) / (m_end.x - m_start.x)) * m_height;
 
         return m_pixels[static_cast<uint32_t>(y * m_width + x)];
     }
@@ -83,6 +134,11 @@ public:
 
         return {};
     }
+
+    std::pair<float, float> get_height_range() const {
+        return std::pair(m_info.min_height, m_info.max_height);
+    }
+
 private:
     std::string m_tif_path;
     TIFF *m_tif;
@@ -91,7 +147,8 @@ private:
     std::map<uint32_t, std::shared_ptr<HeightmapTile>> m_tiles;
     std::map<uint32_t, std::shared_ptr<ContourTile>> m_contours;
 
-    std::unique_ptr<Shader> m_shader;
+    std::map<std::string, std::shared_ptr<HeightmapRenderMode>> m_modes;
+    std::pair<std::string, std::shared_ptr<HeightmapRenderMode>> m_current_mode;
 
     struct {
         uint32_t width, height;

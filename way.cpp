@@ -39,6 +39,7 @@ const DrawPriority classification_draw_priorities[] {
     DrawPriority::INDUSTRIAL, // LANUSE_TRANSPORT
     DrawPriority::COMMERCIAL, // LANDUSE_COMMERCIAL
     DrawPriority::RECREATIONAL, // LANDUSE_RESIDENTIAL
+    DrawPriority::AERIALWAY, // AERIALWAY_GONDOLA
     DrawPriority::POWER_LINE, // POWER_LINE
     DrawPriority::BUILDING, // POWER_DISTRIBUTION
 };
@@ -166,6 +167,10 @@ Metadata::Metadata(std::unordered_map<std::string, std::string>& tags) {
         else
             m_classification = Metadata::Classification::POWER_DISTRIBUTION;
     }
+
+    auto aerialway = tags.find("aerialway");
+    if(aerialway != tags.end())
+        m_classification = Metadata::Classification::AERIALWAY_GONDOLA;
 }
 
 void Way::create_buffers() {
@@ -175,7 +180,7 @@ void Way::create_buffers() {
     assert(m_vao != 0);
     assert(m_vbo != 0);
 
-//    if((m_indices = triangulate_polygon())) {
+    //if((m_indices = triangulate_polygon())) {
     if(false) {
         glGenBuffers(1, &m_ebo);
         assert(m_ebo != 0);
@@ -216,7 +221,7 @@ void Way::draw_buffers() {
     glLineWidth(m_metadata.m_line_width * 2);
     
     if(m_ebo)
-        glDrawElements(GL_TRIANGLES, m_indices->size(), GL_UNSIGNED_INT, &(*m_indices)[0]);
+        glDrawElements(GL_TRIANGLES, m_indices->size(), GL_UNSIGNED_INT, m_indices->data());
     else
         glDrawArrays(GL_LINE_STRIP, 0, m_nodes.size());
 }
@@ -231,7 +236,7 @@ bool Way::is_area() const {
     return (
         m_tags.find("area") != m_tags.end() || 
         m_metadata.m_classification == Metadata::Classification::LANDUSE_FOREST ||
-//        m_metadata.m_classification == Metadata::Classification::LANDUSE_AGRICULTURAL ||
+        m_metadata.m_classification == Metadata::Classification::LANDUSE_AGRICULTURAL ||
         m_metadata.m_classification == Metadata::Classification::LAKE
     ) && m_nodes.front() == m_nodes.back();
 }

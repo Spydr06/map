@@ -7,6 +7,7 @@
 #include <fstream>
 
 #include <geokeys.h>
+#include <memory>
 #include <tiff.h>
 #include <tiffio.h>
 #include <xtiffio.h>
@@ -19,20 +20,13 @@
 static constexpr GLuint indices[] = { 0, 1, 2, 2, 1, 3 };
 
 Heightmap::Heightmap(std::string path)
-        : m_tif_path(path), m_tif{} 
+        : m_tif_path(path), m_tif{}, m_modes{}
 {
-    auto vertex_source = std::ifstream("shaders/heightmap_vertex.glsl");
-    auto fragment_source = std::ifstream("shaders/heightmap_fragment.glsl");
-    if(vertex_source.bad() || fragment_source.bad()) {
-        mlog::logln(mlog::ERROR, "Shader error: Shader file not found");
-        std::exit(1);
-    }
+    m_modes["Altitude"] = std::make_shared<HeightmapAltitudeMode>();
+    m_modes["Gradient"] = std::make_shared<HeightmapGradientMode>();
+    m_modes["Contours"] = std::make_shared<HeightmapContourMode>();
 
-    m_shader = std::make_unique<Shader>(vertex_source, fragment_source);
-    if(auto err = m_shader->get_error()) {
-        mlog::logln(mlog::ERROR, "Shader error: %s", err->c_str());
-        std::exit(1);
-    }
+    m_current_mode = std::pair("Altitude", m_modes["Altitude"]);
 
     create_buffers();
 }
@@ -121,16 +115,6 @@ std::optional<std::shared_ptr<HeightmapTile>> Heightmap::get_tile(uint32_t x, ui
     if(tile != m_tiles.end())
         return tile->second;
 
-    std::vector<float> pixels(TIFFTileSize(m_tif) / sizeof(float));
-    TIFFReadTile(m_tif, reinterpret_cast<void*>(pixels.data()), x * m_info.tile_width, y * m_info.tile_height, 0, 0);
-
-    auto [min_height, max_height] = std::minmax_element(pixels.begin(), pixels.end());
-
-    if(*min_height < m_info.min_height)
-        m_info.min_height = *min_height;
-    if(*max_height > m_info.max_height)
-        m_info.max_height = *max_height;
-
     double min_lon = m_info.min_lon + x * m_info.tile_width * m_info.scale_lon;
     double max_lon = min_lon + m_info.tile_width * m_info.scale_lon;
 
@@ -139,15 +123,22 @@ std::optional<std::shared_ptr<HeightmapTile>> Heightmap::get_tile(uint32_t x, ui
 
     mlog::logln(mlog::INFO, "generating heightmap tile (%d, %d) [%f, %f -> %f, %f]", x, y, min_lon, min_lat, max_lon, max_lat);
 
+    std::vector<float> pixels(TIFFTileSize(m_tif) / sizeof(float));
+    TIFFReadTile(m_tif, reinterpret_cast<void*>(pixels.data()), x * m_info.tile_width, y * m_info.tile_height, 0, 0);
+
+    auto [min_height, max_height] = std::minmax_element(pixels.begin(), pixels.end());
+    mlog::logln(mlog::INFO, "min height: %f, max height: %f", *min_height, *max_height);
+
+    if(*min_height < m_info.min_height)
+        m_info.min_height = *min_height;
+    if(*max_height > m_info.max_height)
+        m_info.max_height = *max_height;
+
     return m_tiles[get_tile_index(x, y)] = std::make_shared<HeightmapTile>(pixels, m_info.tile_width, m_info.tile_height, min_lon, min_lat, max_lon, max_lat);
 }
 
 void Heightmap::draw_scene(Viewport& viewport, InputState& input) {
-    m_shader->use();
-
-    viewport.upload_uniforms(*m_shader, input.window_size);
-    m_shader->upload_uniform("u_Texture", 0);
-    m_shader->upload_uniform("u_HeightRange", glm::vec2(m_info.min_height, m_info.max_height));
+    m_current_mode.second->begin_render(*this, viewport, input);
 
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_tile_ebo);
 
@@ -163,11 +154,31 @@ void Heightmap::draw_scene(Viewport& viewport, InputState& input) {
 void Heightmap::draw_ui(InputState& input) {
     ImGui::Begin("Heightmap");
 
+    ImGui::Text("Height min: %f, max: %f Meters", m_info.min_height, m_info.max_height);
+
     glm::vec2 cursor = input.mapped_cursor_pos;
-    if(auto tile = get_tile_at_position(cursor)) {
+    if(auto tile = get_tile_at_position(cursor))
         ImGui::Text("Height at (%f, %f): %f Meters", cursor.x, cursor.y, (*tile)->height_at_pos(cursor));
+    else
+        ImGui::Text("Height at (%f, %f): ---", cursor.x, cursor.y);
+
+    ImGui::Separator();
+
+    if(ImGui::BeginCombo("Shader", m_current_mode.first.c_str())) {
+        for(auto& [name, mode] : m_modes) {
+            bool is_selected = (m_current_mode.second == mode);
+
+            if(ImGui::Selectable(name.c_str(), is_selected))
+                m_current_mode = std::pair(name, mode);
+
+            if(is_selected)
+                ImGui::SetItemDefaultFocus();
+
+        }
+        ImGui::EndCombo();
     }
 
+    m_current_mode.second->draw_ui(*this);
 
     ImGui::End();
 }
@@ -184,7 +195,7 @@ void HeightmapTile::create_texture() {
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 }
 
@@ -224,5 +235,63 @@ void HeightmapTile::draw_buffers() {
     glBindVertexArray(m_vao);
 
     glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, indices);
+}
+
+HeightmapRenderMode::HeightmapRenderMode(const std::string& vertex_shader_path, const std::string& fragment_shader_path) {
+    auto vertex_source = std::ifstream(vertex_shader_path);
+    auto fragment_source = std::ifstream(fragment_shader_path);
+    if(vertex_source.bad() || fragment_source.bad()) {
+        mlog::logln(mlog::ERROR, "Shader error: %s: Shader file not found", vertex_shader_path.c_str());
+        std::exit(1);
+    }
+
+    m_shader = std::make_unique<Shader>(vertex_source, fragment_source);
+    if(auto err = m_shader->get_error()) {
+        mlog::logln(mlog::ERROR, "Shader error: %s: %s", vertex_shader_path.c_str(), err->c_str());
+        std::exit(1);
+    }
+}
+
+void HeightmapGradientMode::begin_render(Heightmap&, Viewport& viewport, InputState& input) {
+    m_shader->use();
+    viewport.upload_uniforms(*m_shader, input.window_size);
+    m_shader->upload_uniform("u_Texture", 0u);
+    m_shader->upload_uniform("u_Delta", m_delta);
+    m_shader->upload_uniform("u_Brightness", m_brightness);
+}
+
+void HeightmapGradientMode::draw_ui(Heightmap&) {
+    ImGui::SliderFloat("Gradient Delta", &m_delta, 0.0, 1.0);
+    ImGui::SliderFloat("Brightness", &m_brightness, 0.0, 1.0);
+}
+
+void HeightmapAltitudeMode::begin_render(Heightmap& heightmap, Viewport& viewport, InputState& input) {
+    auto [min_height, max_height] = heightmap.get_height_range();
+
+    m_shader->use();
+    viewport.upload_uniforms(*m_shader, input.window_size);
+    m_shader->upload_uniform("u_Texture", 0u);
+    m_shader->upload_uniform("u_HeightRange", glm::vec2(min_height, max_height));
+}
+
+void HeightmapContourMode::begin_render(Heightmap& heightmap, Viewport& viewport, InputState& input) {
+    auto [min_height, max_height] = heightmap.get_height_range();
+
+    m_shader->use();
+    viewport.upload_uniforms(*m_shader, input.window_size);
+    m_shader->upload_uniform("u_Texture", 0u);
+    m_shader->upload_uniform("u_Epsilon", m_epsilon);
+    m_shader->upload_uniform("u_Spacing", m_spacing);
+    m_shader->upload_uniform("u_HeightRange", glm::vec2(min_height, max_height));
+    m_shader->upload_uniform("u_Color", m_color);
+}
+
+void HeightmapContourMode::draw_ui(Heightmap& heightmap) {
+    auto [min_height, max_height] = heightmap.get_height_range();
+
+    ImGui::SliderFloat("Spacing [m]", &m_spacing, 1.0, 100);
+    ImGui::SliderFloat("Epsilon", &m_epsilon, 0.0, 5.0);
+
+    ImGui::ColorPicker4("Color", reinterpret_cast<float*>(&m_color));
 }
 

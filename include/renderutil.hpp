@@ -7,6 +7,7 @@
 
 #include <GL/glew.h>
 #include <utility>
+#include <glm/vec4.hpp>
 
 #include "inputstate.hpp"
 #include "viewport.hpp"
@@ -80,12 +81,20 @@ public:
         return m_id;
     }
 
+    inline void upload_uniform(const std::string& uniform, float value) const {
+        glUniform1f(glGetUniformLocation(m_id, uniform.c_str()), value);
+    }
+
     inline void upload_uniform(const std::string& uniform, GLuint value) const {
         glUniform1i(glGetUniformLocation(m_id, uniform.c_str()), value);
     }
 
     inline void upload_uniform(const std::string& uniform, glm::vec2 value) const {
         glUniform2f(glGetUniformLocation(m_id, uniform.c_str()), value.x, value.y);
+    }
+
+    inline void upload_uniform(const std::string& uniform, glm::vec4 value) const {
+        glUniform4f(glGetUniformLocation(m_id, uniform.c_str()), value.x, value.y, value.z, value.w);
     }
 
 private:

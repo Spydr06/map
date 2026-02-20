@@ -19,7 +19,7 @@ all: $(BINARY)
 $(BINARY): $(OBJECTS)
 	$(CXX) $(LDFLAGS) $^ -o $@
 
-$(BUILD_DIR)/%.o: %.cpp | $(HEADERS)
+$(BUILD_DIR)/%.o: %.cpp $(HEADERS)
 	@mkdir -p $(dir $@)
 	$(CXX) $(CXXFLAGS) -MMD -MP -MF "$(@:%.o=%.d)" -c $< -o $@
 
