@@ -57,19 +57,20 @@ void Map::draw_scene(Viewport& viewport, InputState& input) {
     m_shader->use();
     viewport.upload_uniforms(*m_shader, input.window_size);
 
+    auto zoom = viewport.get_zoom_factor();
     auto scale = viewport.get_scale_factor();
 
     if(m_auto_priority)
-        m_draw_priority = static_cast<DrawPriority>(std::clamp(int(scale * 2 + std::sqrt(scale * 4)), 1, int(DrawPriority::__DRAW_PRIO_LAST)));
+        m_draw_priority = static_cast<DrawPriority>(std::clamp(int(zoom * 2 + std::sqrt(zoom * 4)), 1, int(DrawPriority::__DRAW_PRIO_LAST)));
 
-    m_bvh->draw(view_box, m_draw_priority, m_render_bvh_depth, 0);
+    m_bvh->draw(view_box, m_draw_priority, m_render_bvh_depth, 0, scale);
 
     if(m_selected_way) {
         m_selection_shader->use();
         m_selection_shader->upload_uniform("u_Resolution", input.window_size);
         viewport.upload_uniforms(*m_selection_shader, input.window_size);
 
-        m_selected_way->draw_highlighted_buffers();
+        m_selected_way->draw_highlighted_buffers(scale);
     }
 }
 

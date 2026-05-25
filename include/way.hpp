@@ -161,8 +161,8 @@ public:
 
     void create_buffers();
 
-    void draw_buffers();
-    void draw_highlighted_buffers();
+    void draw_buffers(float scale);
+    void draw_highlighted_buffers(float scale);
 
     inline void add_node(Node node) {
         increase_bbox(node.m_coord);

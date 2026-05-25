@@ -12,12 +12,30 @@
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #include "stb/stb_image_write.h"
 
+struct ResolutionPreset {
+    std::string name;
+    glm::ivec2 resolution;
+};
+
+static const std::map<std::string, glm::ivec2> resolution_presets = {
+    { "FHD", RESOLUTION_FHD },
+    { "4K", RESOLUTION_4K },
+    { "8K", RESOLUTION_8K },
+};
+
 void Screenshot::draw_ui(InputState &input) {
     ImGui::Begin("Screenshot");
 
-    ImGui::SliderFloat("Scale", &m_scale, 0.5f, 2.0f); 
+    ImGui::SliderFloat("Scale", &m_scale, 0.5f, 8.0f); 
 
     ImGui::InputInt2("Resolution", reinterpret_cast<int*>(&m_resolution));
+
+    for(auto& [name, resolution] : resolution_presets) {
+        if(ImGui::Button(name.c_str())) {
+            m_resolution = resolution;
+        }
+        ImGui::SameLine();
+    }
 
     ImGui::Separator();
 
@@ -73,7 +91,11 @@ void Screenshot::take_screenshot(RenderContext& context) {
 
     if(glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
         mlog::logln(mlog::ERROR, "failed generating framebuffer.");
-        goto cleanup;
+
+        glDeleteFramebuffers(1, &fbo);
+        glDeleteRenderbuffers(1, &rbo);
+        glDeleteTextures(1, &target);
+        return;
     }
 
     glViewport(0, 0, m_resolution.x, m_resolution.y);
@@ -86,7 +108,13 @@ void Screenshot::take_screenshot(RenderContext& context) {
 
     glEnable(GL_LINE_SMOOTH);
 
+    Viewport &viewport = context.get_viewport();
+    float scale_before = viewport.get_scale_factor();
+    viewport.get_scale_factor() = m_scale;
+
     context.draw_scene();
+
+    viewport.get_scale_factor() = scale_before;
 
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 

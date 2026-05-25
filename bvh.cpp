@@ -59,7 +59,7 @@ void BVH::add_way(std::shared_ptr<Way> way) {
         b->add_way(std::move(way));
 }
 
-void BVH::draw(BBox& viewport, DrawPriority priority, size_t max_depth, size_t depth)
+void BVH::draw(BBox& viewport, DrawPriority priority, size_t max_depth, size_t depth, float scale)
 {
     if(depth >= max_depth)
         return;
@@ -67,15 +67,15 @@ void BVH::draw(BBox& viewport, DrawPriority priority, size_t max_depth, size_t d
     for(int i = 0; i < static_cast<int>(priority); i++) {
         auto& ways = m_ways[i];
         for(auto& way : ways) {
-            way->draw_buffers();
+            way->draw_buffers(scale);
         }
     }
 
     auto& [ a, b ] = m_children;
     if(a != nullptr && a->intersects(viewport))
-        a->draw(viewport, priority, max_depth, depth + 1);
+        a->draw(viewport, priority, max_depth, depth + 1, scale);
     if(b != nullptr && b->intersects(viewport))
-        b->draw(viewport, priority, max_depth, depth + 1);
+        b->draw(viewport, priority, max_depth, depth + 1, scale);
 }
 
 std::pair<float, std::shared_ptr<Way>> BVH::get_nearest_way(glm::vec2 coords, DrawPriority priority) const {

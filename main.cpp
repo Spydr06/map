@@ -139,7 +139,7 @@ auto main(int argc, char** argv) -> int {
             return;
         }
 
-        auto& scale = context->get_viewport().get_scale_factor();
+        auto& scale = context->get_viewport().get_zoom_factor();
         scale += scale * yoffset * 0.1;
     });
 

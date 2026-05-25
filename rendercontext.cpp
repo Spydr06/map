@@ -34,7 +34,7 @@ void RenderContext::draw_debug_info() {
     ImGui::Text("translation: (%f %f)", translation.x, translation.y);
 
     auto scale = m_viewport.get_scale(m_input_state.window_size);
-    ImGui::Text("scale: (%f %f) (x%f)", scale.x, scale.y, m_viewport.get_scale_factor());
+    ImGui::Text("scale: (%f, %f) | x%f", scale.x, scale.y, m_viewport.get_zoom_factor());
 
     ImGui::Separator();
 

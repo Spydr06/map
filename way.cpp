@@ -205,9 +205,9 @@ void Way::create_buffers() {
     glBindVertexArray(0);
 }
 
-void Way::draw_buffers() {
+void Way::draw_buffers(float scale) {
     glBindVertexArray(m_vao);
-    glLineWidth(m_metadata.m_line_width * 2);
+    glLineWidth(m_metadata.m_line_width * 2.0f * scale);
     
     if(m_ebo)
         glDrawElements(GL_TRIANGLES, m_indices->size(), GL_UNSIGNED_INT, m_indices->data());
@@ -215,9 +215,9 @@ void Way::draw_buffers() {
         glDrawArrays(GL_LINE_STRIP, 0, m_nodes.size());
 }
 
-void Way::draw_highlighted_buffers() {
+void Way::draw_highlighted_buffers(float scale) {
     glBindVertexArray(m_vao);
-    glLineWidth(4);
+    glLineWidth(4.0f * scale);
     glDrawArrays(GL_LINE_STRIP, 0, m_nodes.size());
 }
 
