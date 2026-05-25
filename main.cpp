@@ -4,14 +4,15 @@
 #include <memory>
 
 #include "heightmap.hpp"
-#include "overlay.hpp"
 #include "log.hpp"
-#include "preprocess.hpp"
 #include "map.hpp"
+#include "overlay.hpp"
+#include "preprocess.hpp"
 #include "rendercontext.hpp"
 #include "renderutil.hpp"
-#include "timer.hpp"
+#include "screenshot.hpp"
 #include "taginfo.hpp"
+#include "timer.hpp"
 
 #include <GLFW/glfw3.h>
 #include <getopt.h>
@@ -122,6 +123,9 @@ auto main(int argc, char** argv) -> int {
     context = std::make_unique<RenderContext>(map, window_size);
     context->add_element(std::make_shared<Overlay>());
 
+    auto screenshot = std::make_shared<Screenshot>();
+    context->add_element(screenshot);
+
     glfwSetWindowContentScaleCallback(window, [](GLFWwindow*, float xscale, float yscale) {
         auto& io = ImGui::GetIO();
         io.DisplayFramebufferScale = ImVec2(xscale, yscale);
@@ -226,6 +230,9 @@ auto main(int argc, char** argv) -> int {
             ImGui::RenderPlatformWindowsDefault();
             glfwMakeContextCurrent(backup_context);
         }
+
+        if(screenshot->pending())
+            screenshot->take_screenshot(*context);
         
         glfwSwapBuffers(window);
         glfwWaitEvents();

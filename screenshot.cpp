@@ -1,0 +1,112 @@
+#include "screenshot.hpp"
+
+#include "log.hpp"
+#include "rendercontext.hpp"
+#include "viewport.hpp"
+#include "imgui.h"
+
+#include <ctime>
+#include <format>
+#include <memory>
+
+#define STB_IMAGE_WRITE_IMPLEMENTATION
+#include "stb/stb_image_write.h"
+
+void Screenshot::draw_ui(InputState &input) {
+    ImGui::Begin("Screenshot");
+
+    ImGui::SliderFloat("Scale", &m_scale, 0.5f, 2.0f); 
+
+    ImGui::InputInt2("Resolution", reinterpret_cast<int*>(&m_resolution));
+
+    ImGui::Separator();
+
+    ImGui::Text("Directory: %s", m_directory.string().c_str());
+
+    if(ImGui::Button("Take Screenshot")) {
+        m_pending = true;
+    }
+
+    ImGui::End();
+}
+
+void Screenshot::take_screenshot(RenderContext& context) {
+    m_pending = false;
+
+    auto filepath = m_directory / std::format("map-{}.jpg", std::time(NULL));
+
+    // target texture
+    GLuint target = 0;
+    glGenTextures(1, &target);
+    assert(target != 0);
+
+    glBindTexture(GL_TEXTURE_2D, target);
+
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, m_resolution.x, m_resolution.y, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+
+    // render buffer
+    GLuint rbo = 0;
+    glGenRenderbuffers(1, &rbo);
+    assert(rbo != 0);
+
+    glBindRenderbuffer(GL_RENDERBUFFER, rbo);
+    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, m_resolution.x, m_resolution.y);
+
+    // frame buffer
+    GLuint fbo = 0;
+    glGenFramebuffers(1, &fbo);
+    assert(fbo != 0);
+
+    glBindFramebuffer(GL_FRAMEBUFFER, fbo);
+    glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, target, 0);
+    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, rbo);
+
+    GLenum draw_buffers[] = {
+        GL_COLOR_ATTACHMENT0
+    };
+    glDrawBuffers(1, draw_buffers);
+
+    std::unique_ptr<uint8_t[]> data = nullptr;
+    glm::vec3 clear_color = context.get_clear_color();
+
+    if(glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
+        mlog::logln(mlog::ERROR, "failed generating framebuffer.");
+        goto cleanup;
+    }
+
+    glViewport(0, 0, m_resolution.x, m_resolution.y);
+
+    glClearColor(clear_color.x, clear_color.y, clear_color.z, 1.0);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+    glEnable(GL_LINE_SMOOTH);
+
+    context.draw_scene();
+
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+    data = std::make_unique<uint8_t[]>(m_resolution.x * m_resolution.y * sizeof(uint8_t) * 4);
+    glBindTexture(GL_TEXTURE_2D, target);
+
+    glPixelStorei(GL_PACK_ALIGNMENT, 1);
+    glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, GL_UNSIGNED_BYTE, data.get());
+
+    stbi_flip_vertically_on_write(true);
+    if(!stbi_write_jpg(filepath.c_str(), m_resolution.x, m_resolution.y, 4, data.get(), 100)) {
+        mlog::logln(mlog::ERROR, "failed writing image to %s: %s", filepath.c_str(), strerror(errno));
+        goto cleanup;
+    }
+
+    mlog::logln(mlog::INFO, "saved screenshot to \"%s\".", filepath.c_str());
+
+cleanup:
+    glDeleteFramebuffers(1, &fbo);
+    glDeleteRenderbuffers(1, &rbo);
+    glDeleteTextures(1, &target);
+}
+

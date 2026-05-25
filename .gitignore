@@ -7,7 +7,7 @@ build/
 *.d
 *.png
 *.tiff
-*.jpg
+./*.jpg
 
 # editor cache
 .cache/

@@ -303,11 +303,13 @@ void HeightmapContourMode::begin_render(Heightmap& heightmap, Viewport& viewport
 }
 
 void HeightmapContourMode::draw_ui(Heightmap& heightmap) {
-    auto [min_height, max_height] = heightmap.get_height_range();
-
     ImGui::SliderFloat("Spacing [m]", &m_spacing, 1.0, 500);
     ImGui::SliderFloat("Epsilon", &m_epsilon, 0.0, 5.0);
 
-    ImGui::ColorPicker4("Color", reinterpret_cast<float*>(&m_color));
+    if(ImGui::TreeNode("Color")) {
+        ImGui::ColorPicker4("", reinterpret_cast<float*>(&m_color));
+        
+        ImGui::TreePop();
+    }
 }
 
