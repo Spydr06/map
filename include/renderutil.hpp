@@ -129,37 +129,37 @@ public:
 // returns distance in meters
 double measure_latlon_dist(glm::vec2 from, glm::vec2 to);
 
-static inline float rad_to_deg(float rad) {
-    return rad * (180.0f / M_PI);
+static inline double rad_to_deg(double rad) {
+    return rad * (180.0 / M_PI);
 }
 
-static inline glm::vec2 rad_to_deg(glm::vec2 rad) {
-    return rad * glm::vec2(180.0f / M_PI);
+static inline glm::dvec2 rad_to_deg(glm::dvec2 rad) {
+    return rad * glm::dvec2(180.0 / M_PI);
 }
 
-static inline float deg_to_rad(float deg) {
-    return deg / (180.0f / M_PI);
+static inline double deg_to_rad(double deg) {
+    return deg / (180.0 / M_PI);
 }
 
-static inline glm::vec2 deg_to_rad(glm::vec2 deg) {
-    return deg / glm::vec2(180.0f / M_PI);
+static inline glm::vec2 deg_to_rad(glm::dvec2 deg) {
+    return deg / glm::dvec2(180.0 / M_PI);
 }
 
-static inline glm::vec2 map_project(glm::vec2 latlon) {
-    return glm::vec2(
+static inline glm::dvec2 map_project(glm::dvec2 latlon) {
+    return glm::dvec2(
         latlon.x,
         rad_to_deg(std::log(std::tan(deg_to_rad(latlon.y) / 2 + M_PI / 4)))
     );
 }
 
-static inline glm::vec2 project_back(glm::vec2 mapped) {
-    return glm::vec2(
+static inline glm::dvec2 project_back(glm::dvec2 mapped) {
+    return glm::dvec2(
         mapped.x,
         rad_to_deg(std::atan(std::exp(deg_to_rad(mapped.y))) * 2 - M_PI / 2)
     );
 }
 
-static inline double measure_mapped_dist(glm::vec2 from, glm::vec2 to) {
+static inline double measure_mapped_dist(glm::dvec2 from, glm::dvec2 to) {
     return measure_latlon_dist(
         project_back(from),
         project_back(to)

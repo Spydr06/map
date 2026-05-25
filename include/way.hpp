@@ -59,7 +59,7 @@ struct Metadata {
 
         RAILWAY,
         WATERWAY,
-        LAKE,
+        WATER,
 
         LANDUSE_AGRICULTURAL,
         LANDUSE_FOREST,

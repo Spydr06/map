@@ -8,7 +8,53 @@ uniform vec2 u_Translation;
 
 out vec4 v_Color;
 
+const vec4 s_dark = vec4(0.2,0.118,0.22, 1.0);
+const vec4 s_mid = vec4(0.439,0.412,0.576, 1.0);
+const vec4 s_water = vec4(0.439,0.627,0.686, 1.0);
+const vec4 s_light = vec4(0.627,0.757,0.725, 1.0);
+
+const vec4 s_trans = vec4(0.0, 0.0, 0.0, 0.0);
+
 const vec4 c_Colormap[] = vec4[](
+    s_light, // unknown
+    s_dark, // highway motorway
+    s_dark, // highway trunk
+    s_dark, // highway primary
+    s_dark, // highway secondary
+    s_mid, // highway tertiary
+    s_mid, // highway unclassified
+    s_mid, // highway residential
+    s_mid, // living street
+    s_mid, // service
+    s_mid, // pedestrian
+    s_mid, // track
+    s_mid, // busway
+    s_mid, // footway
+    s_mid, // cycleway
+    s_mid, // footway sidewalk
+    s_mid, // footway crossing
+
+    s_dark, // railway
+    s_water, // waterway
+    s_water, // lake
+
+    s_trans, // landuse agricultural
+    s_light, // landuse forest
+    s_light, // landuse industrial
+    s_light, // landuse recreational
+    s_light, // landuse transport
+    s_light, // landuse commercial
+    s_light, // landuse residential
+    
+    s_dark, // aerialway
+
+    s_trans, // power lines
+    s_trans, // power distribution
+
+    vec4(1.0, 0.0, 1.0, 1.0)
+);
+
+/*const vec4 c_Colormap[] = vec4[](
     vec4(0.3, 0.3, 0.3, 0.5), // unknown
     vec4(1.00, 0.32, 0.31, 1.0), // highway motorway
     vec4(1.00, 0.56, 0.31, 1.0), // highway trunk
@@ -45,7 +91,8 @@ const vec4 c_Colormap[] = vec4[](
     vec4(0.46, 0.18, 0.63, 1.0), // power distribution
 
     vec4(1.0, 0.0, 1.0, 1.0)
-);
+);*/
+
 
 void main() {
     v_Color = c_Colormap[a_Metadata & 0xff];

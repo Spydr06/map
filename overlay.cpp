@@ -4,6 +4,8 @@
 
 #include <fstream>
 
+#include <imgui.h>
+
 Overlay::Overlay() {
     auto vertex_source = std::ifstream("shaders/overlay_vertex.glsl");
     auto fragment_source = std::ifstream("shaders/overlay_fragment.glsl");
@@ -32,5 +34,8 @@ void Overlay::draw_scene(Viewport& viewport, InputState& input) {
 };
 
 void Overlay::draw_ui(InputState& input) {
+    ImGui::Begin("Tools");
+
+    ImGui::End();
 };
 

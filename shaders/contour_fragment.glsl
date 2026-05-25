@@ -15,6 +15,36 @@ float map(float value, float inMin, float inMax, float outMin, float outMax) {
 }
 
 void main() {
+    float h = texture(u_Texture, v_TexCoord).r;
+
+    float level = (h - u_HeightRange.x) / u_Spacing;
+    float distToLine = abs(fract(level) - 0.5);
+
+    float width = length(vec2(dFdx(h), dFdy(h))) / u_Spacing;
+    float aa = width * u_Epsilon;
+
+    float line = 1.0 - smoothstep(0.0, aa, distToLine);
+
+    float brightness = map(h, u_HeightRange.x, u_HeightRange.y, 0.0, 1.0);
+    frag_Color = vec4(vec3(line * line * brightness), 1.0) * u_Color;
+
+    /*float h = texture(u_Texture, v_TexCoord).r;
+
+    float level = (h - u_HeightRange.x) / u_Spacing;
+    float distToLine = abs(fract(level) - 0.5);
+
+    float width = fwidth(level);*/
+
+    /*vec2 t = 1.0 / vec2(textureSize(u_Texture, 0));
+
+    float dx = texture(u_Texture, v_TexCoord + vec2(t.x, 0)).r - texture(u_Texture, v_TexCoord - vec2(t.x, 0)).r;
+    float dy = texture(u_Texture, v_TexCoord + vec2(0, t.y)).r - texture(u_Texture, v_TexCoord - vec2(0, t.y)).r;
+
+    float grad = abs(dx) + abs(dy);
+    float width = grad / u_Spacing;
+    float aa = width * u_Epsilon;*/
+
+
     /*float d = 0.001;
 
     vec2 texel = vec2(d);
@@ -35,17 +65,5 @@ void main() {
 
     frag_Color = vec4(vec3(line * brightness), 1.0);*/
 
-    float h = texture(u_Texture, v_TexCoord).r;
-
-    float level = (h - u_HeightRange.x) / u_Spacing;
-    float distToLine = abs(fract(level) - 0.5);
-
-    float width = fwidth(level);
-    float aa = width * u_Epsilon;
-
-    float line = 1.0 - smoothstep(0.0, aa, distToLine);
-
-    float brightness = map(h, u_HeightRange.x, u_HeightRange.y, 0.0, 1.0);
-    frag_Color = vec4(vec3(line * line * brightness), 1.0) * u_Color;
 }
 

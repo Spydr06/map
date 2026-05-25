@@ -116,7 +116,7 @@ public:
     }
 
 private:
-    std::optional<std::shared_ptr<Heightmap>> m_heightmap{};
+    std::shared_ptr<Heightmap> m_heightmap = nullptr;
 
     std::unique_ptr<BVH> m_bvh;
     std::unique_ptr<Shader> m_shader;

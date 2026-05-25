@@ -27,7 +27,7 @@ static void XMLCALL enter_element(void* user_data, const XML_Char* name, const X
         }
         
         assert(id && lat && lon);
-        data->m_node_cache->add_node(std::stoull(id), Node(map_project(glm::vec2(std::stof(lon), std::stof(lat)))));
+        data->m_node_cache->add_node(std::stoull(id), Node(map_project(glm::dvec2(std::stod(lon), std::stod(lat)))));
     }
     else if(std::memcmp(name, "way", 3) == 0) {
         const XML_Char* id = nullptr;
@@ -69,12 +69,12 @@ static void XMLCALL enter_element(void* user_data, const XML_Char* name, const X
         }
 
         assert(min_lon && max_lon && min_lat && max_lat);
-        auto min_a = map_project(glm::vec2(std::stof(min_lon), std::stof(min_lat)));
-        auto min_b = map_project(glm::vec2(std::stof(min_lon), std::stof(max_lat)));
+        auto min_a = map_project(glm::dvec2(std::stod(min_lon), std::stod(min_lat)));
+        auto min_b = map_project(glm::dvec2(std::stod(min_lon), std::stod(max_lat)));
         glm::vec2 min(std::min(min_a.x, min_b.x), min_a.y);
 
-        auto max_a = map_project(glm::vec2(std::stof(max_lon), std::stof(max_lat)));
-        auto max_b = map_project(glm::vec2(std::stof(max_lon), std::stof(min_lat)));
+        auto max_a = map_project(glm::dvec2(std::stod(max_lon), std::stod(max_lat)));
+        auto max_b = map_project(glm::dvec2(std::stod(max_lon), std::stod(min_lat)));
         glm::vec2 max(std::max(max_a.x, max_b.x), max_a.y);
 
         data->m_map->init_bvh(std::make_pair(min, max), 16);

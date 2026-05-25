@@ -5,6 +5,9 @@ build/
 *.out
 *.so
 *.d
+*.png
+*.tiff
+*.jpg
 
 # editor cache
 .cache/
@@ -16,6 +19,8 @@ vgcore.*
 # data directories
 data.txt
 datasets/
+heightmap/
 cache/
 *.ini
+*.txt
 

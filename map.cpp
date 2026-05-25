@@ -49,8 +49,8 @@ void Map::init_bvh(std::pair<glm::vec2, glm::vec2> minmax_coords, size_t max_dep
 }
 
 void Map::draw_scene(Viewport& viewport, InputState& input) {
-    if(auto heightmap = *m_heightmap)
-        heightmap->draw_scene(viewport, input);
+    if(m_heightmap != nullptr)
+        m_heightmap->draw_scene(viewport, input);
 
     auto view_box = viewport.viewport_bbox();
 
@@ -74,8 +74,8 @@ void Map::draw_scene(Viewport& viewport, InputState& input) {
 }
 
 void Map::draw_ui(InputState& input) {
-    if(auto heightmap = *m_heightmap)
-        heightmap->draw_ui(input);
+    if(m_heightmap != nullptr)
+        m_heightmap->draw_ui(input);
 
     auto [dist, way] = get_nearest_way(input.mapped_cursor_pos);
     m_selected_way = way;

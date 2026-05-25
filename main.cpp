@@ -1,4 +1,5 @@
 #include <chrono>
+#include <glm/ext/vector_float4.hpp>
 #include <vector>
 #include <memory>
 
@@ -79,7 +80,7 @@ auto main(int argc, char** argv) -> int {
 
     glfwMakeContextCurrent(window);
     
-    glfwSwapInterval(0);
+    //glfwSwapInterval(0);
 
     if(GLenum err = glewInit()) {
         mlog::logln(mlog::ERROR, "OpenGL error: %s", glewGetErrorString(err));
@@ -194,7 +195,8 @@ auto main(int argc, char** argv) -> int {
 
         glViewport(0, 0, window_size.x, window_size.y);
         
-        glClearColor(0.0, 0.0, 0.0, 1.0);
+        glm::vec3 clear_color = context->get_clear_color();
+        glClearColor(clear_color.x, clear_color.y, clear_color.z, 1.0);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); 
 
         glEnable(GL_BLEND);

@@ -9,6 +9,9 @@
 #include <set>
 
 #include <GL/glew.h>
+#include <glm/vec3.hpp>
+
+#define DEFAULT_CLEAR_COLOR glm::vec3(1.0f, 0.953f, 0.914f)
 
 class RenderContext {
 public:
@@ -31,12 +34,17 @@ public:
         return m_input_state;
     }
 
+    inline auto& get_clear_color() {
+        return m_clearcolor;
+    }
+
 private:
     void draw_debug_info();
 
     std::shared_ptr<Map> m_map;
     std::multiset<std::shared_ptr<RenderElement>, RenderElement::Comparator> m_elements;
     
+    glm::vec3 m_clearcolor = DEFAULT_CLEAR_COLOR;
     Viewport m_viewport;
     InputState m_input_state;
 

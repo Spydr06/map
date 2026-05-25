@@ -55,7 +55,7 @@ class HeightmapContourMode : public HeightmapRenderMode {
 public:
     HeightmapContourMode()
         : HeightmapRenderMode("./shaders/contour_vertex.glsl", "./shaders/contour_fragment.glsl"),
-          m_color(1.0), m_epsilon(0.1), m_spacing(10.0)
+          m_color(1.0), m_epsilon(0.1), m_spacing(50.0)
     {}
 
     virtual void begin_render(Heightmap& heightmap, Viewport& viewport, InputState& input) override;

@@ -14,6 +14,8 @@
 #include <geotiff.h>
 #include <geotiffio.h>
 #include <geo_tiffp.h>
+#include <geo_normalize.h>
+#include <proj.h>
 
 #include <imgui.h>
 
@@ -99,6 +101,14 @@ int Heightmap::preprocess() {
     m_info.max_lat = m_info.min_lat - m_info.height * scale[1];
 
     // TODO: CRS check
+    GTIFDefn defn;
+    if(!GTIFGetDefn(m_gtif, &defn)) {
+        mlog::logln(mlog::ERROR, "Could not get geotiff defn");
+        return 1;
+    }
+
+    char *proj4 = GTIFGetProj4Defn(&defn);
+    mlog::logln(mlog::INFO, "projection model: %s", proj4);
 
     mlog::logln(mlog::INFO, "lon: %f - %f", m_info.min_lon, m_info.max_lon);
     mlog::logln(mlog::INFO, "lat: %f - %f", m_info.min_lat, m_info.max_lat);
@@ -195,7 +205,13 @@ void HeightmapTile::create_texture() {
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    GLfloat value, max_anisotropy = 8.0f;
+    glGetFloatv(GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, &value);
+    mlog::logln(mlog::INFO, "anisotropy max: %f", value);
+
+    glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, std::min(max_anisotropy, value));
+
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 }
 
@@ -289,7 +305,7 @@ void HeightmapContourMode::begin_render(Heightmap& heightmap, Viewport& viewport
 void HeightmapContourMode::draw_ui(Heightmap& heightmap) {
     auto [min_height, max_height] = heightmap.get_height_range();
 
-    ImGui::SliderFloat("Spacing [m]", &m_spacing, 1.0, 100);
+    ImGui::SliderFloat("Spacing [m]", &m_spacing, 1.0, 500);
     ImGui::SliderFloat("Epsilon", &m_epsilon, 0.0, 5.0);
 
     ImGui::ColorPicker4("Color", reinterpret_cast<float*>(&m_color));
