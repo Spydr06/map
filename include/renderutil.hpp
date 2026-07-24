@@ -7,6 +7,9 @@
 
 #include <GL/glew.h>
 #include <utility>
+
+#include <glm/vec2.hpp>
+#include <glm/vec3.hpp>
 #include <glm/vec4.hpp>
 
 #include "inputstate.hpp"
@@ -81,6 +84,10 @@ public:
         return m_id;
     }
 
+    inline void upload_uniform(const std::string& uniform, bool value) const {
+        glUniform1i(glGetUniformLocation(m_id, uniform.c_str()), value);
+    }
+
     inline void upload_uniform(const std::string& uniform, float value) const {
         glUniform1f(glGetUniformLocation(m_id, uniform.c_str()), value);
     }
@@ -91,6 +98,10 @@ public:
 
     inline void upload_uniform(const std::string& uniform, glm::vec2 value) const {
         glUniform2f(glGetUniformLocation(m_id, uniform.c_str()), value.x, value.y);
+    }
+
+    inline void upload_uniform(const std::string& uniform, glm::vec3 value) const {
+        glUniform3f(glGetUniformLocation(m_id, uniform.c_str()), value.x, value.y, value.z);
     }
 
     inline void upload_uniform(const std::string& uniform, glm::vec4 value) const {
@@ -111,6 +122,8 @@ public:
     };
 
     RenderElement() {}
+
+    virtual void menu_item() {};
 
     virtual void draw_scene(Viewport& viewport, InputState& input) = 0;
     virtual void draw_ui(InputState& input) = 0;

@@ -1,15 +1,18 @@
 #include "map.hpp"
 #include "bvh.hpp"
+#include "inspector.hpp"
 #include "way.hpp"
 #include "log.hpp"
+#include "renderutil.hpp"
 
 #include <cmath>
 #include <fstream>
 
 #include <imgui.h>
+#include <memory>
 
 Map::Map()
-    : m_bvh(nullptr), m_inspector()
+    : m_bvh(nullptr), m_tools{}
 {
     auto vertex_source = std::ifstream("shaders/map_vertex.glsl");
     auto fragment_source = std::ifstream("shaders/map_fragment.glsl");
@@ -25,18 +28,10 @@ Map::Map()
     }
 
 
-    auto sel_vertex_source = std::ifstream("shaders/map_selected_vertex.glsl");
-    auto sel_fragment_source = std::ifstream("shaders/map_selected_fragment.glsl");
-    if(sel_vertex_source.bad() || sel_fragment_source.bad()) {
-        mlog::logln(mlog::ERROR, "Shader error: Shader file not found");
-        std::exit(1);
-    }
+    m_tools.emplace("Inspect", std::make_unique<Inspector>());
+    m_tools.emplace("Select (Rect)", std::make_unique<RectangleSelect>());
 
-    m_selection_shader = std::make_unique<Shader>(sel_vertex_source, sel_fragment_source);
-    if(auto err = m_selection_shader->get_error()) {
-        mlog::logln(mlog::ERROR, "Shader error: %s", err->c_str());
-        std::exit(1);
-    }
+    m_selected_tool = "Inspect";
 }
 
 void Map::init_bvh(std::pair<glm::vec2, glm::vec2> minmax_coords, size_t max_depth) {
@@ -65,12 +60,9 @@ void Map::draw_scene(Viewport& viewport, InputState& input) {
 
     m_bvh->draw(view_box, m_draw_priority, m_render_bvh_depth, 0, scale);
 
-    if(m_selected_way) {
-        m_selection_shader->use();
-        m_selection_shader->upload_uniform("u_Resolution", input.window_size);
-        viewport.upload_uniforms(*m_selection_shader, input.window_size);
-
-        m_selected_way->draw_highlighted_buffers(scale);
+    if(auto tool_name = m_selected_tool) {
+        auto &selected_tool = m_tools[*tool_name];
+        selected_tool->draw_scene(*this, viewport, input);
     }
 }
 
@@ -78,11 +70,23 @@ void Map::draw_ui(InputState& input) {
     if(m_heightmap != nullptr)
         m_heightmap->draw_ui(input);
 
-    auto [dist, way] = get_nearest_way(input.mapped_cursor_pos);
-    m_selected_way = way;
-    
-    if(way != nullptr) {
-        m_inspector.inspect_ui(this, way);
+    ImGui::Begin("Tools");
+
+    for(const auto& [name, tool] : m_tools) {
+        ImGui::BeginDisabled(name == m_selected_tool);
+
+        if(ImGui::Button(name.c_str()))
+            m_selected_tool = name;
+
+        ImGui::EndDisabled();
+        ImGui::SameLine();
+    }
+
+    ImGui::End();
+
+    if(auto tool_name = m_selected_tool) {
+        auto &selected_tool = m_tools[*tool_name];
+        selected_tool->draw_ui(*this, input);
     }
 }
 

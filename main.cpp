@@ -118,7 +118,7 @@ auto main(int argc, char** argv) -> int {
     
     auto& io = ImGui::GetIO();
     io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
-    // io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
+    //io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
 
     context = std::make_unique<RenderContext>(map, window_size);
     context->add_element(std::make_shared<Overlay>());
@@ -216,7 +216,7 @@ auto main(int argc, char** argv) -> int {
         ImGui_ImplGlfw_NewFrame();
         ImGui::NewFrame();
 
-        // ImGui::DockSpaceOverViewport(0, ImGui::GetMainViewport(), ImGuiDockNodeFlags_PassthruCentralNode);
+        ImGui::DockSpaceOverViewport(0, ImGui::GetMainViewport(), ImGuiDockNodeFlags_PassthruCentralNode);
         
         context->draw_ui();
 

@@ -223,9 +223,10 @@ void Way::draw_highlighted_buffers(float scale) {
 
 bool Way::is_area() const {
     return (
-        // m_tags.find("area") != m_tags.end()
-        // || m_metadata.m_classification == Metadata::Classification::LANDUSE_FOREST
-        // || m_metadata.m_classification == Metadata::Classification::LANDUSE_AGRICULTURAL ||
+        // m_tags.find("area") != m_tags.end() ||
+        m_metadata.m_classification == Metadata::Classification::LANDUSE_FOREST ||
+        m_metadata.m_classification == Metadata::Classification::LANDUSE_AGRICULTURAL ||
+        m_metadata.m_classification == Metadata::Classification::LANDUSE_RECREATIONAL ||
         m_metadata.m_classification == Metadata::Classification::WATER
     ) && m_nodes.front() == m_nodes.back();
 }

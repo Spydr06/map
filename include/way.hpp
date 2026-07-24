@@ -157,6 +157,8 @@ public:
             glDeleteVertexArrays(1, &m_vao);
         if(m_vbo)
             glDeleteVertexArrays(1, &m_vbo);
+        if(m_ebo)
+            glDeleteBuffers(1, &m_ebo);
     }
 
     void create_buffers();

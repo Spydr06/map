@@ -1,18 +1,19 @@
 #pragma once
 
-#include "way.hpp"
+#include "map.hpp"
+#include "maptools.hpp"
 
-#include <memory>
-
-class Map;
-
-class Inspector {
+class Inspector : public MapTool {
 public:
-    Inspector() 
-    {}
+    Inspector();
 
-    void inspect_ui(Map* map, std::shared_ptr<Way> way);
+    virtual void draw_ui(Map &map, InputState& input) override;
+    virtual void draw_scene(Map &map, Viewport& viewport, InputState& input) override;
+
 private:
+    bool m_fixed = false;
 
+    std::unique_ptr<Shader> m_selection_shader;
+    std::shared_ptr<Way> m_selected_way;
 };
 

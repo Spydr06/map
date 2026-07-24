@@ -11,7 +11,7 @@
 #include "bvh.hpp"
 #include "inputstate.hpp"
 #include "renderutil.hpp"
-#include "inspector.hpp"
+#include "maptools.hpp"
 #include "way.hpp"
 #include "heightmap.hpp"
 
@@ -120,12 +120,11 @@ private:
 
     std::unique_ptr<BVH> m_bvh;
     std::unique_ptr<Shader> m_shader;
-    std::unique_ptr<Shader> m_selection_shader;
-    
-    Inspector m_inspector;
 
+    std::map<std::string, std::unique_ptr<MapTool>> m_tools;
+    std::optional<std::string> m_selected_tool;
+    
     std::size_t m_max_bvh_depth, m_render_bvh_depth;
-    std::shared_ptr<Way> m_selected_way;
 
     DrawPriority m_draw_priority = DrawPriority::__DRAW_PRIO_LAST;
     bool m_auto_priority = true;

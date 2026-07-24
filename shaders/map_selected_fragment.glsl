@@ -6,9 +6,11 @@ flat in vec2 v_StartPos;
 in vec2 v_VertPos;
 
 uniform vec2 u_Resolution;
+uniform int u_Fixed;
 
 const float c_DashSize = 20;
 const vec4 c_SelColor = vec4(0.0, 1.0, 1.0, 1.0);
+const vec4 c_FixedColor = vec4(1.0, 0.0, 1.0, 1.0);
 
 void main() {
     vec2 dir = (v_VertPos - v_StartPos) * u_Resolution / 2.0;
@@ -17,6 +19,6 @@ void main() {
     if(fract(dist / c_DashSize * 2.0) > c_DashSize / (c_DashSize * 2.0))
         discard;
 
-    frag_Color = c_SelColor;
+    frag_Color = c_SelColor * (1 - u_Fixed) + c_FixedColor * u_Fixed;
 }
 

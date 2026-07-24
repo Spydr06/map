@@ -8,7 +8,10 @@ uniform vec2 u_Translation;
 
 out vec4 v_Color;
 
-// Warm Light Theme:
+const vec4 s_trans = vec4(0.0, 0.0, 0.0, 0.0);
+
+
+// Blue Theme:
 /*
 const vec4 s_accent_1 = vec4(0.2,0.118,0.22, 1.0);
 const vec4 s_accent_2 = vec4(0.2,0.118,0.22, 1.0);
@@ -16,6 +19,7 @@ const vec4 s_accent_3 = vec4(0.2,0.118,0.22, 1.0);
 const vec4 s_primary = vec4(0.439,0.412,0.576, 1.0);
 const vec4 s_water = vec4(0.439,0.627,0.686, 1.0);
 const vec4 s_secundary = vec4(0.627,0.757,0.725, 1.0);
+const vec4 s_foliage = vec4(0.757,0.788,0.729, 1.0);
 */
 
 // Red Theme:
@@ -26,6 +30,7 @@ const vec4 s_accent_3 = vec4(0.365,0.165,0.259, 1.0);
 const vec4 s_primary = vec4(0.988,0.694,0.651, 1.0);
 const vec4 s_water = vec4(0.518,0.863,0.776, 1.0);
 const vec4 s_secundary = vec4(1.,0.863,0.8, 1.0);
+const vec4 s_foliage = s_trans;
 */
 
 // Purple Theme:
@@ -36,17 +41,27 @@ const vec4 s_accent_3 = vec4(1.,0.922,0.906, 1.0);
 const vec4 s_primary = vec4(0.624,0.525,0.753, 1.0);
 const vec4 s_water = vec4(0.325,0.847,0.984, 1.0);
 const vec4 s_secundary = vec4(0.369,0.329,0.557, 1.0);
+const vec4 s_foliage = s_trans;
 */
 
 // Green Theme:
-const vec4 s_accent_1 = vec4(0.737,0.906,0.518, 1.0);
-const vec4 s_accent_2 = vec4(0.365,0.827,0.62, 1.0);
-const vec4 s_accent_3 = vec4(0.863,0.929,1., 1.0);
-const vec4 s_primary = vec4(0.322,0.318,0.455, 1.0);
-const vec4 s_water = vec4(0.204,0.541,0.655, 1.0);
-const vec4 s_secundary = vec4(0.318,0.231,0.337, 1.0);
+const vec4 s_accent_1 = vec4(0.929,0.416,0.353, 1.0);
+const vec4 s_accent_2 = vec4(0.792,0.824,0.773, 1.0);
+const vec4 s_accent_3 = vec4(0.792,0.824,0.773, 1.0);
+const vec4 s_primary = vec4(0.322,0.475,0.435, 1.0);
+const vec4 s_water = vec4(0.518,0.663,0.549, 1.0);
+const vec4 s_secundary = vec4(0.322,0.475,0.435, 1.0);
+const vec4 s_foliage = vec4(0.208,0.31,0.322, 1.0);
 
-const vec4 s_trans = vec4(0.0, 0.0, 0.0, 0.0);
+// Grayscale Theme:
+/*const vec4 s_accent_1 = vec4(1.0, 1.0, 1.0, 1.0);
+const vec4 s_accent_2 = vec4(1.0, 1.0, 1.0, 1.0);
+const vec4 s_accent_3 = vec4(1.0, 1.0, 1.0, 1.0);
+const vec4 s_primary = vec4(1.0, 1.0, 1.0, 1.0);
+const vec4 s_water = vec4(1.0, 1.0, 1.0, 1.0);
+const vec4 s_secundary = vec4(1.0, 1.0, 1.0, 1.0);
+const vec4 s_foliage = s_trans;
+*/
 
 const vec4 c_Colormap[] = vec4[](
     s_secundary, // unknown
@@ -72,9 +87,9 @@ const vec4 c_Colormap[] = vec4[](
     s_water, // lake
 
     s_trans, // landuse agricultural
-    s_secundary, // landuse forest
+    s_foliage, // landuse forest
     s_secundary, // landuse industrial
-    s_secundary, // landuse recreational
+    s_foliage, // landuse recreational
     s_secundary, // landuse transport
     s_secundary, // landuse commercial
     s_secundary, // landuse residential

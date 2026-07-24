@@ -8,6 +8,7 @@ uniform sampler2D u_Texture;
 uniform float u_Epsilon;
 uniform float u_Spacing;
 uniform vec2 u_HeightRange;
+uniform vec3 u_BackgroundColor;
 uniform vec4 u_Color;
 
 float map(float value, float inMin, float inMax, float outMin, float outMax) {
@@ -26,7 +27,9 @@ void main() {
     float line = 1.0 - smoothstep(0.0, aa, distToLine);
 
     float brightness = map(h, u_HeightRange.x, u_HeightRange.y, 0.0, 1.0);
-    frag_Color = vec4(vec3(line * line * brightness), 1.0) * u_Color;
+
+    vec3 lineColor = u_Color.xyz * brightness;
+    frag_Color = vec4(mix(u_BackgroundColor, lineColor, line * line), 1.0);
 
     /*float h = texture(u_Texture, v_TexCoord).r;
 

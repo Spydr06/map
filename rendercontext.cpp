@@ -57,7 +57,7 @@ void RenderContext::draw_debug_info() {
 
     if(ImGui::TreeNode("rendering options")) {
         ImGui::Checkbox("show mesh", &m_disable_fill);
-        ImGui::ColorPicker3("background color", reinterpret_cast<float*>(&m_clearcolor));
+        ImGui::ColorEdit3("background color", reinterpret_cast<float*>(&m_clearcolor));
 
         ImGui::TreePop();
     }
@@ -66,6 +66,14 @@ void RenderContext::draw_debug_info() {
 }
 
 void RenderContext::draw_ui() {
+    ImGui::BeginMainMenuBar();
+
+    for(auto& element : m_elements) {
+        element->menu_item();
+    }
+
+    ImGui::EndMainMenuBar();
+
     draw_debug_info();
 
     for(auto& element : m_elements) {

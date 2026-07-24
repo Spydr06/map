@@ -11,7 +11,7 @@
 #include <GL/glew.h>
 #include <glm/vec3.hpp>
 
-// Warm Light Theme:
+// Blue Theme:
 // #define DEFAULT_CLEAR_COLOR glm::vec3(1.0f, 0.953f, 0.914f)
 
 // Red Theme:
@@ -21,7 +21,11 @@
 // #define DEFAULT_CLEAR_COLOR glm::vec3(0.094,0.067,0.176)
 
 // Green Theme:
-#define DEFAULT_CLEAR_COLOR glm::vec3(0.082,0.075,0.078)
+// #define DEFAULT_CLEAR_COLOR glm::vec3(0.082,0.075,0.078)
+#define DEFAULT_CLEAR_COLOR glm::vec3(0.184,0.243,0.275)
+
+// Grayscale Theme:
+// #define DEFAULT_CLEAR_COLOR glm::vec3(0.0, 0.0, 0.0)
 
 class RenderContext {
 public:
