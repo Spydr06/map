@@ -40,6 +40,19 @@ public:
         m_elements.insert(element);
     }
 
+    template<std::derived_from<RenderElement> T>
+    inline std::shared_ptr<T> get_element() {
+        for(const auto& element : m_elements) {
+            if(auto found = std::dynamic_pointer_cast<T>(element))
+                return found; 
+        }
+        return nullptr;
+    }
+
+    inline void remove_element(std::shared_ptr<RenderElement> element) {
+        m_elements.erase(element);
+    }
+
     inline auto& get_viewport() {
         return m_viewport;
     }

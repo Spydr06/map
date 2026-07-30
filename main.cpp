@@ -70,11 +70,11 @@ auto main(int argc, char** argv) -> int {
         return 1;
     }
 
-    auto timers = std::vector({
-        Timer(std::chrono::seconds(1), [](auto& frame_time){
+    auto timers = std::vector<Timer>{
+        /* Timer(std::chrono::seconds(1), [](auto& frame_time){
             mlog::logln(mlog::DEBUG, "fps: %ld", std::chrono::seconds(1) / frame_time);
-        })
-    });
+        }) */
+    };
 
     auto last_time = std::chrono::steady_clock::now();
     std::chrono::steady_clock::duration frame_time;
@@ -122,9 +122,7 @@ auto main(int argc, char** argv) -> int {
 
     context = std::make_unique<RenderContext>(map, window_size);
     context->add_element(std::make_shared<Overlay>());
-
-    auto screenshot = std::make_shared<Screenshot>();
-    context->add_element(screenshot);
+    context->add_element(std::make_shared<Console>());
 
     glfwSetWindowContentScaleCallback(window, [](GLFWwindow*, float xscale, float yscale) {
         auto& io = ImGui::GetIO();
@@ -231,9 +229,13 @@ auto main(int argc, char** argv) -> int {
             glfwMakeContextCurrent(backup_context);
         }
 
-        if(screenshot->pending())
-            screenshot->take_screenshot(*context);
-        
+        if(auto screenshot = context->get_element<Screenshot>()) {
+            if(screenshot->pending())
+                screenshot->take_screenshot(*context);
+            if(screenshot->remove())
+                context->remove_element(screenshot);
+        }
+
         glfwSwapBuffers(window);
         glfwWaitEvents();
 

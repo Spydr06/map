@@ -79,6 +79,7 @@ public:
 
     virtual void draw_scene(Viewport& viewport, InputState& input) override;
     virtual void draw_ui(InputState& input) override;
+    virtual void menu_item() override;
 
     inline void add_way(std::shared_ptr<Way> way) {
         assert(m_bvh);
@@ -115,7 +116,21 @@ public:
         return m_auto_priority;
     }
 
+    inline void deselect_tool() {
+        m_selected_tool = std::nullopt;
+    }
+
+    inline void set_source(std::string source) {
+        m_source = source;
+    }
+
+    inline std::string get_source() {
+        return m_source;
+    }
+
 private:
+    std::string m_source;
+    
     std::shared_ptr<Heightmap> m_heightmap = nullptr;
 
     std::unique_ptr<BVH> m_bvh;

@@ -2,7 +2,10 @@
 
 #include "log.hpp"
 #include "rendercontext.hpp"
+#include "renderutil.hpp"
 #include "viewport.hpp"
+#include "main.hpp"
+
 #include "imgui.h"
 
 #include <ctime>
@@ -24,7 +27,11 @@ static const std::map<std::string, glm::ivec2> resolution_presets = {
 };
 
 void Screenshot::draw_ui(InputState &input) {
-    ImGui::Begin("Screenshot");
+    ImGui::Begin("Screenshot", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoResize);
+
+    if(auto& r = m_range) {
+        ImGui::Text("Selection: (%f, %f) to (%f, %f) (%f x %f)", r->m_start.x, r->m_start.y, r->m_end.x, r->m_end.y, r->size().x, r->size().y);
+    }
 
     ImGui::SliderFloat("Scale", &m_scale, 0.5f, 8.0f); 
 
@@ -37,6 +44,7 @@ void Screenshot::draw_ui(InputState &input) {
         ImGui::SameLine();
     }
 
+    ImGui::NewLine();
     ImGui::Separator();
 
     ImGui::Text("Directory: %s", m_directory.string().c_str());
@@ -45,13 +53,36 @@ void Screenshot::draw_ui(InputState &input) {
         m_pending = true;
     }
 
+    ImGui::SameLine();
+
+    if(ImGui::Button("Cancel")) {
+        m_remove = true;
+    }
+
     ImGui::End();
+}
+
+void Screenshot::draw_ui(Map& map, InputState& input) {
+    draw_ui(input);
+
+    if(m_remove) {
+        map.deselect_tool();
+        m_remove = false;
+    }
+
+    if(m_pending) {
+        take_screenshot(*context);
+    }
 }
 
 void Screenshot::take_screenshot(RenderContext& context) {
     m_pending = false;
 
+    mlog::logln(mlog::DEBUG, "start creating screenshot...\n");
+
     auto filepath = m_directory / std::format("map-{}.jpg", std::time(NULL));
+
+    Framebuffer fb()
 
     // target texture
     GLuint target = 0;

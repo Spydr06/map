@@ -1,6 +1,7 @@
 #include "map.hpp"
 #include "bvh.hpp"
 #include "inspector.hpp"
+#include "screenshot.hpp"
 #include "way.hpp"
 #include "log.hpp"
 #include "renderutil.hpp"
@@ -30,6 +31,7 @@ Map::Map()
 
     m_tools.emplace("Inspect", std::make_unique<Inspector>());
     m_tools.emplace("Select (Rect)", std::make_unique<RectangleSelect>());
+    m_tools.emplace("Screenshot", std::make_unique<Screenshot>());
 
     m_selected_tool = "Inspect";
 }
@@ -66,6 +68,22 @@ void Map::draw_scene(Viewport& viewport, InputState& input) {
     }
 }
 
+
+void Map::menu_item() {
+    std::string tools_menu = "Tools";
+    if(const auto& tool_name = m_selected_tool) {
+        tools_menu += " [" + *tool_name + "]";
+    }
+
+    if(ImGui::BeginMenu(tools_menu.c_str())) {
+        for(const auto& [name, tool] : m_tools) {
+            if(ImGui::MenuItem(name.c_str(), nullptr, m_selected_tool == name, true))
+                m_selected_tool = name;
+        }
+        ImGui::EndMenu();
+    }
+}
+
 void Map::draw_ui(InputState& input) {
     if(m_heightmap != nullptr)
         m_heightmap->draw_ui(input);
@@ -84,7 +102,7 @@ void Map::draw_ui(InputState& input) {
 
     ImGui::End();
 
-    if(auto tool_name = m_selected_tool) {
+    if(const auto& tool_name = m_selected_tool) {
         auto &selected_tool = m_tools[*tool_name];
         selected_tool->draw_ui(*this, input);
     }
