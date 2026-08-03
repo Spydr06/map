@@ -137,10 +137,8 @@ auto main(int argc, char** argv) -> int {
             map->set_heightmap(heightmap);
         }
     }
-    else {
-        context->add_element(std::make_shared<MapLoader>());
-    }
 
+    context->add_element(std::make_shared<MapLoader>());
     context->add_element(std::make_shared<Overlay>());
     context->add_element(std::make_shared<Console>());
 

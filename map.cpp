@@ -8,10 +8,12 @@
 #include "renderutil.hpp"
 
 #include <cmath>
+#include <filesystem>
 #include <fstream>
 
 #include <imgui.h>
 #include <memory>
+#include <nfd.h>
 
 Map::Map()
     : m_bvh(nullptr), m_tools{}
@@ -124,22 +126,44 @@ void Map::draw_ui(InputState& input) {
     }
 }
 
+static std::optional<std::string> file_dialog(const nfdchar_t* filter) {
+    nfdchar_t *out_path;
+
+    auto cwd = std::filesystem::current_path();
+
+    switch(NFD_OpenDialog(filter, cwd.c_str(), &out_path)) {
+        case NFD_OKAY:
+            return std::string(out_path);
+        case NFD_CANCEL:
+            return std::nullopt;
+        default:
+            mlog::logln(mlog::INFO, "NFD Error: %s", NFD_GetError());
+            return std::nullopt;
+    }
+}
+
 void MapLoader::menu_item() {
     if(ImGui::BeginMenu("Load")) {
         auto map = context->get_element<Map>();
 
         if(ImGui::MenuItem("Map [osm/xml]")) {
-
+            if(auto osm_path = file_dialog("osm;xml")) {
+                mlog::logln(mlog::INFO, "Loading OSM Map '%s'...", osm_path->c_str());
+            }
         }
 
         ImGui::BeginDisabled(!map);
 
         if(ImGui::MenuItem("Tag Info [xml]")) {
-
+            if(auto osm_path = file_dialog("xml")) {
+                mlog::logln(mlog::INFO, "Loading Tag-Info '%s'...", osm_path->c_str());
+            }
         }
 
         if(ImGui::MenuItem("Heightmap [tif]")) {
-
+            if(auto osm_path = file_dialog("tif,tiff")) {
+                mlog::logln(mlog::INFO, "Loading Heightmap '%s'...", osm_path->c_str());
+            }
         }
 
         ImGui::EndDisabled();
