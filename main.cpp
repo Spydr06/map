@@ -1,5 +1,5 @@
 #include <chrono>
-#include <glm/ext/vector_float4.hpp>
+#include <cstdlib>
 #include <vector>
 #include <memory>
 
@@ -25,9 +25,16 @@ constexpr glm::vec2 window_size = glm::vec2(1366, 768);
 
 std::unique_ptr<RenderContext> context = nullptr;
 
+[[noreturn]]
+static void usage(const char *progname) {
+    mlog::logln(mlog::ERROR, "Usage: %s [<osm xml file>] [-t <taginfo xml file>] [-h <heightmap geotiff>]", progname);
+    std::exit(EXIT_SUCCESS);
+}
+
 auto main(int argc, char** argv) -> int {
     mlog::init_from_env("MAP_LOG");
 
+    const char *osm_path = nullptr;
     const char *taginfo_path = nullptr;
     const char *heightmap_path = nullptr;
 
@@ -41,17 +48,21 @@ auto main(int argc, char** argv) -> int {
             taginfo_path = optarg;
             break;
         default:
-            mlog::logln(mlog::ERROR, "Usage: %s <osm xml file> [-t <taginfo xml file>] [-h <heightmap geotiff>]", argv[0]);
-            return 1;
+            usage(argv[0]);
         }
     }
 
-    if(optind != argc - 1) {
-        mlog::logln(mlog::ERROR, "Usage: %s <osm xml file> [-t <taginfo xml file>] [-h <heightmap geotiff>]", argv[0]);
-        return 1;
+    if(optind < argc - 1) {
+        usage(argv[1]);
+    }
+    else if(optind == argc - 1) {
+        osm_path = argv[optind];
     }
 
-    const char *osm_path = argv[optind];
+    if(!osm_path && (taginfo_path || heightmap_path)) {
+        mlog::logln(mlog::ERROR, "Cannot load tag or heightmap information without an OSM map");
+        usage(argv[1]);
+    }
 
     if(!glfwInit()) {
         mlog::logln(mlog::ERROR, "Error initializing GLFW");
@@ -89,27 +100,6 @@ auto main(int argc, char** argv) -> int {
         return 1;
     }
 
-    auto map = std::make_shared<Map>();
-
-    mlog::logln(mlog::INFO, "Preprocessing data...");
-
-    if(int err; taginfo_path && (err = load_taginfo(taginfo_path, map))) {
-        return err;
-    }
-
-    if(heightmap_path) {
-        auto heightmap = std::make_shared<Heightmap>(std::string(heightmap_path));
-        if(int err = heightmap->preprocess()) {
-            return err;
-        }
-
-        map->set_heightmap(heightmap);
-    }
-
-    if(int err = preprocess_data(osm_path, map)) {
-        return err;
-    };
-
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
 
@@ -120,7 +110,37 @@ auto main(int argc, char** argv) -> int {
     io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
     //io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
 
-    context = std::make_unique<RenderContext>(map, window_size);
+    context = std::make_unique<RenderContext>(window_size);
+
+    std::shared_ptr<Map> map = nullptr;
+    if(osm_path) {
+        mlog::logln(mlog::INFO, "Preprocessing data...");
+
+        map = std::make_shared<Map>(); 
+        context->add_element(map);
+
+        if(int err = preprocess_data(osm_path, map))
+            return err;
+        
+        context->get_viewport() = Viewport(map->get_minmax_coord());
+
+        if(int err; taginfo_path && (err = load_taginfo(taginfo_path, map))) {
+            return err;
+        }
+
+        if(heightmap_path) {
+            auto heightmap = std::make_shared<Heightmap>(std::string(heightmap_path));
+            if(int err = heightmap->preprocess()) {
+                return err;
+            }
+
+            map->set_heightmap(heightmap);
+        }
+    }
+    else {
+        context->add_element(std::make_shared<MapLoader>());
+    }
+
     context->add_element(std::make_shared<Overlay>());
     context->add_element(std::make_shared<Console>());
 
@@ -232,9 +252,9 @@ auto main(int argc, char** argv) -> int {
         if(auto screenshot = context->get_element<Screenshot>()) {
             if(screenshot->pending())
                 screenshot->take_screenshot(*context);
-            if(screenshot->remove())
-                context->remove_element(screenshot);
         }
+
+        context->remove_elements();
 
         glfwSwapBuffers(window);
         glfwWaitEvents();

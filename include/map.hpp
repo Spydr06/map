@@ -145,3 +145,16 @@ private:
     bool m_auto_priority = true;
 };
 
+class MapLoader : public RenderElement {
+public:
+    MapLoader() = default;
+    ~MapLoader() = default;
+
+    virtual void menu_item() override;
+
+    virtual void draw_scene(Viewport& viewport, InputState& input) override {};
+    virtual void draw_ui(InputState& input) override {};
+private:
+
+};
+

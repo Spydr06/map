@@ -29,12 +29,14 @@
 
 class RenderContext {
 public:
-    RenderContext(std::shared_ptr<Map> map, glm::vec2 window_size)
-        : m_map(map), m_elements({map}), m_viewport(map->get_minmax_coord()), m_input_state(window_size)
+    RenderContext(glm::vec2 window_size)
+        : m_elements(), m_viewport(), m_input_state(window_size)
     {}
 
     void draw_scene();
     void draw_ui();
+
+    void remove_elements();
 
     inline void add_element(std::shared_ptr<RenderElement> element) {
         m_elements.insert(element);
@@ -66,9 +68,11 @@ public:
     }
 
 private:
+    using element_iter = std::multiset<std::shared_ptr<RenderElement>>::iterator;
+    element_iter get_first_element();
+
     void draw_debug_info();
 
-    std::shared_ptr<Map> m_map;
     std::multiset<std::shared_ptr<RenderElement>, RenderElement::Comparator> m_elements;
     
     glm::vec3 m_clearcolor = DEFAULT_CLEAR_COLOR;

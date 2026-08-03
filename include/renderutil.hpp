@@ -1,5 +1,6 @@
 #pragma once
 
+#include <glm/ext/vector_float3.hpp>
 #include <istream>
 #include <optional>
 #include <memory>
@@ -113,6 +114,23 @@ private:
     GLuint m_id;
 };
 
+class Model {
+public:
+    Model(std::vector<glm::vec3> vertices, std::vector<GLuint> indices);
+    ~Model();
+
+private:
+    GLuint m_vao, m_vbo, m_ebo;
+
+    std::vector<glm::vec3> m_vertices;
+    std::vector<GLuint> m_indices;
+};
+
+class CubeModel : public Model {
+public:
+    CubeModel(float size = 1.0f);
+};
+
 class RenderElement {
 public:
     struct Comparator {
@@ -131,6 +149,14 @@ public:
     virtual int get_z_index() const {
         return 0;
     };
+
+    virtual bool translucent() const {
+        return true;
+    }
+
+    virtual bool remove() const {
+        return false;
+    }
 
     bool operator<(const RenderElement& other) const {
         return this->get_z_index() < other.get_z_index();

@@ -52,3 +52,12 @@ double measure_latlon_dist(glm::vec2 from, glm::vec2 to) {
 }
 
 
+Model::Model(std::vector<glm::vec3> vertices, std::vector<GLuint> indices) 
+    : m_vertices(vertices), m_indices(indices) {
+
+}
+
+Model::~Model() {
+}
+
+

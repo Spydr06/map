@@ -2,6 +2,7 @@
 
 #include "main.hpp"
 #include "map.hpp"
+#include "modelview.hpp"
 #include "renderutil.hpp"
 #include "screenshot.hpp"
 #include "viewport.hpp"
@@ -72,6 +73,10 @@ void RectangleSelect::draw_ui(Map& map, InputState& input) {
         ImGui::SameLine();
         if(ImGui::Button("Screenshot"))
             take_screenshot();
+
+        ImGui::SameLine();
+        if(ImGui::Button("Create Model"))
+            create_model();
     }
 
     ImGui::Separator();
@@ -135,5 +140,9 @@ void RectangleSelect::take_screenshot() {
     if(!context->get_element<Screenshot>()) {
         context->add_element(std::make_shared<Screenshot>(*m_range));
     }
+}
+
+void RectangleSelect::create_model() {
+//    context->add_element(std::make_shared<ModelView>(std::make_shared<Model>()));
 }
 

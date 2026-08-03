@@ -1,4 +1,5 @@
 #include "map.hpp"
+#include "main.hpp"
 #include "bvh.hpp"
 #include "inspector.hpp"
 #include "screenshot.hpp"
@@ -88,6 +89,21 @@ void Map::draw_ui(InputState& input) {
     if(m_heightmap != nullptr)
         m_heightmap->draw_ui(input);
 
+    ImGui::Begin("View");
+
+    auto [min, max] = get_minmax_coord();
+    ImGui::Text("coordinate system: (%f, %f) to (%f, %f)", min.x, min.y, max.x, max.y);
+
+    ImGui::Separator();
+
+    ImGui::Checkbox("Auto Priority", &m_auto_priority);
+
+    ImGui::SliderInt("Draw Priority", reinterpret_cast<int*>(&m_draw_priority), __DRAW_PRIORITY_FIRST, __DRAW_PRIO_LAST);
+
+    ImGui::End();
+
+
+
     ImGui::Begin("Tools");
 
     for(const auto& [name, tool] : m_tools) {
@@ -108,3 +124,25 @@ void Map::draw_ui(InputState& input) {
     }
 }
 
+void MapLoader::menu_item() {
+    if(ImGui::BeginMenu("Load")) {
+        auto map = context->get_element<Map>();
+
+        if(ImGui::MenuItem("Map [osm/xml]")) {
+
+        }
+
+        ImGui::BeginDisabled(!map);
+
+        if(ImGui::MenuItem("Tag Info [xml]")) {
+
+        }
+
+        if(ImGui::MenuItem("Heightmap [tif]")) {
+
+        }
+
+        ImGui::EndDisabled();
+        ImGui::EndMenu();
+    }
+}

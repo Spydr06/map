@@ -2,7 +2,6 @@
 
 #include "log.hpp"
 #include "rendercontext.hpp"
-#include "renderutil.hpp"
 #include "viewport.hpp"
 #include "main.hpp"
 
@@ -81,8 +80,6 @@ void Screenshot::take_screenshot(RenderContext& context) {
     mlog::logln(mlog::DEBUG, "start creating screenshot...\n");
 
     auto filepath = m_directory / std::format("map-{}.jpg", std::time(NULL));
-
-    Framebuffer fb()
 
     // target texture
     GLuint target = 0;

@@ -1,7 +1,6 @@
 #include "rendercontext.hpp"
 #include "imgui.h"
 #include "renderutil.hpp"
-#include "way.hpp"
 
 #include <GL/glew.h>
 
@@ -12,13 +11,10 @@
 void RenderContext::draw_debug_info() {
     ImGui::Begin("Debug info");
 
-    auto [min, max] = m_map->get_minmax_coord();
-    ImGui::Text("coordinate system: (%f, %f) to (%f, %f)", min.x, min.y, max.x, max.y);
-
     auto viewport = m_viewport.viewport_size();
     ImGui::Text("viewport size: (%f %f)", viewport.x, viewport.y);
 
-    /*auto view_min = m_viewport.min_view();
+    auto view_min = m_viewport.min_view();
     auto view_max = m_viewport.max_view();
 
     auto tl = view_min;
@@ -28,7 +24,7 @@ void RenderContext::draw_debug_info() {
     auto view_width_m = measure_mapped_dist(tl, tr);
     auto view_width_h = measure_mapped_dist(tl, bl);
 
-    ImGui::Text("viewport size (m): (%f %f)", view_width_m, view_width_h); */
+    ImGui::Text("viewport size (meters): (%f %f)", view_width_m, view_width_h);
     
     auto translation = m_viewport.get_translation();
     ImGui::Text("translation: (%f %f)", translation.x, translation.y);
@@ -38,29 +34,13 @@ void RenderContext::draw_debug_info() {
 
     ImGui::Separator();
 
-    auto auto_priority = m_map->get_auto_priority();
-    int draw_priority = m_map->get_draw_priority();
-
-    ImGui::Checkbox("Auto Priority", &auto_priority);
-
-    ImGui::SliderInt("Draw Priority", &draw_priority, __DRAW_PRIORITY_FIRST, __DRAW_PRIO_LAST);
-
-    m_map->set_auto_priority(auto_priority);
-    m_map->set_draw_priority(static_cast<DrawPriority>(draw_priority));
-
-    ImGui::Separator();
-
     ImGui::Text("raw cursor pos: (%f %f)", m_input_state.last_cursor_pos.x, m_input_state.last_cursor_pos.y);
     ImGui::Text("mapped cursor pos: (%f %f)", m_input_state.mapped_cursor_pos.x, m_input_state.mapped_cursor_pos.y);
 
-    ImGui::Separator();
+    ImGui::SeparatorText("rendering options");
 
-    if(ImGui::TreeNode("rendering options")) {
-        ImGui::Checkbox("show mesh", &m_disable_fill);
-        ImGui::ColorEdit3("background color", reinterpret_cast<float*>(&m_clearcolor));
-
-        ImGui::TreePop();
-    }
+    ImGui::Checkbox("show mesh", &m_disable_fill);
+    ImGui::ColorEdit3("background color", reinterpret_cast<float*>(&m_clearcolor));
 
     ImGui::End();
 }
@@ -68,25 +48,44 @@ void RenderContext::draw_debug_info() {
 void RenderContext::draw_ui() {
     ImGui::BeginMainMenuBar();
 
-    for(auto& element : m_elements) {
-        element->menu_item();
+    auto first = get_first_element();
+    for(auto it = first; it != m_elements.end(); it++) {
+        (*it)->menu_item();
     }
 
     ImGui::EndMainMenuBar();
 
     draw_debug_info();
 
-    for(auto& element : m_elements) {
-        element->draw_ui(m_input_state);
+    for(auto it = first; it != m_elements.end(); it++) {
+        (*it)->draw_ui(m_input_state);
     }
+}
+
+RenderContext::element_iter RenderContext::get_first_element() {
+    element_iter first = m_elements.begin();
+    for(auto it = m_elements.rbegin(); it != m_elements.rend(); it++) {
+        if(!(*it)->translucent()) {
+            first = std::prev(it.base());
+            break;
+        }
+    }
+
+    return first;
 }
 
 void RenderContext::draw_scene() {
     glPolygonMode(GL_FRONT_AND_BACK, m_disable_fill ? GL_LINE : GL_FILL);
 
-    for(auto& element : m_elements) {
-        element->draw_scene(m_viewport, m_input_state);
+    for(auto it = get_first_element(); it != m_elements.end(); it++) {
+        (*it)->draw_scene(m_viewport, m_input_state);
     }
+}
+
+void RenderContext::remove_elements() {
+    std::erase_if(m_elements, [](const auto& element) {
+        return element->remove();
+    });
 }
 
 void Viewport::upload_uniforms(const Shader& shader, glm::vec2 window_size) {
@@ -157,3 +156,4 @@ Shader::~Shader() {
     if(!has_error())
         glDeleteProgram(m_id);
 }
+

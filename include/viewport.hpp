@@ -12,6 +12,10 @@ class Shader;
 
 class Viewport {
 public:
+    Viewport()
+        : Viewport(std::pair(glm::vec2(0, 0), glm::vec2(1, 1)))
+    {}
+
     Viewport(std::pair<glm::vec2, glm::vec2> minmax_coords) 
         : m_min_coord(minmax_coords.first), m_max_coord(minmax_coords.second), m_min_view(m_min_coord), m_max_view(m_max_coord)
     {

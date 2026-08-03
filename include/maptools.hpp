@@ -59,6 +59,7 @@ public:
 
 private:
     void create_buffers();
+    void create_model();
     void take_screenshot();
 
 private:

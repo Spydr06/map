@@ -32,14 +32,14 @@ public:
 
     virtual void draw_ui(Map& map, InputState& input_state) override;
 
+    virtual bool remove() const override {
+        return m_remove;
+    }
+
     void take_screenshot(RenderContext& context);
 
     inline bool pending() const {
         return m_pending;
-    }
-
-    inline bool remove() const {
-        return m_remove;
     }
 
     virtual int get_z_index() const override {

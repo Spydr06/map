@@ -45,6 +45,11 @@ public:
 
     virtual void draw_scene(Viewport& viewport, InputState& input) override;
     virtual void draw_ui(InputState& input) override;
+
+    virtual int get_z_index() const override {
+        return 100;
+    }
+
     void push_line(mlog::Level level, const std::string& line);
 
 private:
