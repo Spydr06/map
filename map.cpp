@@ -2,15 +2,18 @@
 #include "main.hpp"
 #include "bvh.hpp"
 #include "inspector.hpp"
+#include "preprocess.hpp"
 #include "screenshot.hpp"
 #include "way.hpp"
 #include "log.hpp"
 #include "renderutil.hpp"
 
 #include <cmath>
+#include <expected>
 #include <filesystem>
 #include <fstream>
 
+#include <future>
 #include <imgui.h>
 #include <memory>
 #include <nfd.h>
@@ -142,13 +145,26 @@ static std::optional<std::string> file_dialog(const nfdchar_t* filter) {
     }
 }
 
+std::expected<std::shared_ptr<Map>, int> load_map(std::string xml_path, std::shared_ptr<Map> map, MapLoader *loader) {
+    if(int err = preprocess_data(xml_path, map, &loader->m_loading_map_progress)) {
+        return std::unexpected(err);
+    }
+
+    return map;
+}
+
 void MapLoader::menu_item() {
     if(ImGui::BeginMenu("Load")) {
+        ImGui::BeginDisabled(m_loading_map.has_value());
+
         auto map = context->get_element<Map>();
 
         if(ImGui::MenuItem("Map [osm/xml]")) {
             if(auto osm_path = file_dialog("osm;xml")) {
                 mlog::logln(mlog::INFO, "Loading OSM Map '%s'...", osm_path->c_str());
+                auto map = std::make_shared<Map>();
+
+                m_loading_map = std::async(&load_map, *osm_path, map, this);
             }
         }
 
@@ -167,6 +183,17 @@ void MapLoader::menu_item() {
         }
 
         ImGui::EndDisabled();
+        ImGui::EndDisabled();
         ImGui::EndMenu();
     }
+
 }
+
+void MapLoader::draw_ui(InputState& input) {
+    if(auto& loading = m_loading_map) {
+        ImGui::Begin("Loading Map...");
+        ImGui::ProgressBar(m_loading_map_progress.load() / 1024.0f / 1024.0f, ImVec2(0.0f, 0.0f), "(MiB)");
+        ImGui::End();
+    }
+}
+

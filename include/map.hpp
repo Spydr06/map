@@ -2,11 +2,15 @@
 
 #include "bbox.hpp"
 
+#include <atomic>
+#include <expected>
+#include <future>
 #include <memory>
 
 #include <glm/vec2.hpp>
 #include <GL/glew.h>
 #include <cairo.h>
+#include <optional>
 
 #include "bvh.hpp"
 #include "inputstate.hpp"
@@ -147,18 +151,25 @@ private:
 
 class MapLoader : public RenderElement {
 public:
-    MapLoader() = default;
+    MapLoader()
+        : m_loading_map(std::nullopt)
+    {}
+
     ~MapLoader() = default;
 
     virtual void menu_item() override;
 
     virtual void draw_scene(Viewport& viewport, InputState& input) override {};
-    virtual void draw_ui(InputState& input) override {};
+    virtual void draw_ui(InputState& input) override;
 
     virtual int get_z_index() const override {
         return -1;
     }
-private:
 
+private:
+    std::atomic_int m_loading_map_progress;
+    std::optional<std::future<std::expected<std::shared_ptr<Map>, int>>> m_loading_map;
+
+    friend std::expected<std::shared_ptr<Map>, int> load_map(std::string, std::shared_ptr<Map>, MapLoader*);
 };
 

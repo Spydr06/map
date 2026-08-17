@@ -10,6 +10,7 @@
 
 #include <expat.h>
 #include <memory>
+#include <optional>
 #include <string>
 
 static void XMLCALL enter_element(void* user_data, const XML_Char* name, const XML_Char** atts) {
@@ -104,10 +105,14 @@ static void XMLCALL leave_element(void* user_data, const XML_Char* name) {
     }
 }
 
-auto preprocess_data(const char* xml_path, std::shared_ptr<Map> map) -> int {
+auto preprocess_data(const std::string& xml_path, std::shared_ptr<Map> map) -> int {
+    return preprocess_data(xml_path, map, nullptr);
+}
+
+auto preprocess_data(const std::string& xml_path, std::shared_ptr<Map> map, std::atomic_int* progress) -> int {
     auto input = std::ifstream(xml_path);
     if(!input.good()) {
-        mlog::logln(mlog::ERROR, "Could not open `%s`", xml_path);
+        mlog::logln(mlog::ERROR, "Could not open `%s`", xml_path.c_str());
         return 1;
     }
     
@@ -133,7 +138,12 @@ auto preprocess_data(const char* xml_path, std::shared_ptr<Map> map) -> int {
             goto cleanup;
         }
     
-        mlog::log(mlog::INFO, "\r%zu MiB parsed", input.tellg() / 1024 / 1024);
+        if(progress) {
+            progress->store(input.tellg());
+        }
+        else {
+            mlog::log(mlog::INFO, "\r%zu MiB parsed", input.tellg() / 1024 / 1024);
+        }
 
         const auto bytes_read = input.readsome((char*) buf, buffer_size);
         if(!bytes_read)

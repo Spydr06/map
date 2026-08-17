@@ -4,7 +4,6 @@
 #include "map.hpp"
 
 #include <memory>
-#include <utility>
 #include <unordered_map>
 
 class NodeCache : public BBox {
@@ -52,5 +51,6 @@ struct PreData {
     std::shared_ptr<Way> m_current_way;
 };
 
-auto preprocess_data(const char* xml_path, std::shared_ptr<Map> map) -> int;
+auto preprocess_data(const std::string& xml_path, std::shared_ptr<Map> map) -> int;
+auto preprocess_data(const std::string& xml_path, std::shared_ptr<Map> map, std::atomic_int* progress) -> int;
 
