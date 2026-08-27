@@ -1,22 +1,46 @@
 #include "map.hpp"
-#include "main.hpp"
-#include "bvh.hpp"
 #include "inspector.hpp"
 #include "preprocess.hpp"
 #include "screenshot.hpp"
 #include "way.hpp"
 #include "log.hpp"
 #include "renderutil.hpp"
+#include "main.hpp"
 
 #include <cmath>
 #include <expected>
 #include <filesystem>
 #include <fstream>
 
-#include <future>
 #include <imgui.h>
 #include <memory>
 #include <nfd.h>
+
+static const PresetTheme NAVY_THEME(
+    glm::vec4(0.439, 0.412, 0.576, 1.0),
+    glm::vec4(0.627, 0.757, 0.725, 1.0),
+    glm::vec4(0.439, 0.627, 0.686, 1.0),
+    glm::vec4(0.757, 0.788, 0.729, 1.0),
+    std::array<glm::vec4, 3>{
+        glm::vec4(0.2, 0.118, 0.22, 1.0),
+        glm::vec4(0.2, 0.118, 0.22, 1.0),
+        glm::vec4(0.2, 0.118, 0.22, 1.0)
+    },
+    glm::vec3(1.0f, 0.953f, 0.914f)
+);
+
+static const PresetTheme SAGE_THEME(
+    glm::vec4(0.322,0.475,0.435, 1.0),
+    glm::vec4(0.322,0.475,0.435, 1.0),
+    glm::vec4(0.518,0.663,0.549, 1.0),
+    glm::vec4(0.208,0.31,0.322, 1.0),
+    std::array<glm::vec4, 3>{
+        glm::vec4(0.929,0.416,0.353, 1.0),
+        glm::vec4(0.792,0.824,0.773, 1.0),
+        glm::vec4(0.792,0.824,0.773, 1.0)
+    },
+    glm::vec3(0.184,0.243,0.275)
+);
 
 Map::Map()
     : m_bvh(nullptr), m_tools{}
@@ -59,6 +83,9 @@ void Map::draw_scene(Viewport& viewport, InputState& input) {
 
     m_shader->use();
     viewport.upload_uniforms(*m_shader, input.window_size);
+
+    auto view = context->get_element<MapView>();
+    view->get_theme()->use(*m_shader);
 
     auto zoom = viewport.get_zoom_factor();
     auto scale = viewport.get_scale_factor();
@@ -195,5 +222,167 @@ void MapLoader::draw_ui(InputState& input) {
         ImGui::ProgressBar(m_loading_map_progress.load() / 1024.0f / 1024.0f, ImVec2(0.0f, 0.0f), "(MiB)");
         ImGui::End();
     }
+}
+
+void MapTheme::use(const Shader& shader) {
+    shader.upload_uniform("u_Colormap", m_entries);
+}
+
+PresetTheme::PresetTheme(glm::vec4 primary, glm::vec4 secundary, glm::vec4 water, glm::vec4 foliage, std::array<glm::vec4, 3> accent, glm::vec3 background, glm::vec4 trans)
+    : MapTheme({
+            { Metadata::UNKNOWN,                 secundary},
+            { Metadata::HIGHWAY_MOTORWAY,        accent[0] },
+            { Metadata::HIGHWAY_TRUNK,           accent[0] },
+            { Metadata::HIGHWAY_PRIMARY,         accent[1] },
+            { Metadata::HIGHWAY_SECONDARY,       accent[1] },
+            { Metadata::HIGHWAY_TERTIARY,        primary   },
+            { Metadata::HIGHWAY_UNCLASSIFIED,    primary   },
+            { Metadata::HIGHWAY_RESIDENTIAL,     primary   },
+            { Metadata::HIGHWAY_LIVING_STREET,   primary   },
+            { Metadata::HIGHWAY_SERVICE,         primary   },
+            { Metadata::HIGHWAY_PEDESTRIAN,      primary   },
+            { Metadata::HIGHWAY_TRACK,           primary   },
+            { Metadata::HIGHWAY_BUSWAY,          primary   },
+            { Metadata::HIGHWAY_FOOTWAY,         primary   },
+            { Metadata::HIGHWAY_CYCLEWAY,        primary   },
+            { Metadata::FOOTWAY_SIDEWALK,        primary   },
+            { Metadata::FOOTWAY_CROSSING,        primary   },
+            { Metadata::RAILWAY,                 accent[2] },
+            { Metadata::WATER,                   water     },
+            { Metadata::WATERWAY,                water     },
+            { Metadata::LANDUSE_AGRICULTURAL,    foliage   },
+            { Metadata::LANDUSE_RECREATIONAL,    foliage   },
+            { Metadata::LANDUSE_FOREST,          foliage   },
+            { Metadata::LANDUSE_INDUSTRIAL,      secundary },
+            { Metadata::LANDUSE_COMMERCIAL,      secundary },
+            { Metadata::LANDUSE_RESIDENTIAL,     secundary },
+            { Metadata::LANDUSE_TRANSPORT,       secundary },
+            { Metadata::AERIALWAY_GONDOLA,       accent[2] },
+            { Metadata::POWER_LINE,              trans     },
+            { Metadata::POWER_DISTRIBUTION,      trans     },
+    }, background)
+{}
+
+
+// Red Theme:
+/*
+const vec4 s_accent_1 = vec4(0.984,0.388,0.463, 1.0);
+const vec4 s_accent_2 = vec4(0.365,0.165,0.259, 1.0);
+const vec4 s_accent_3 = vec4(0.365,0.165,0.259, 1.0);
+const vec4 s_primary = vec4(0.988,0.694,0.651, 1.0);
+const vec4 s_water = vec4(0.518,0.863,0.776, 1.0);
+const vec4 s_secundary = vec4(1.,0.863,0.8, 1.0);
+const vec4 s_foliage = s_trans;
+*/
+
+// Purple Theme:
+/*
+const vec4 s_accent_1 = vec4(0.867,0.067,0.333, 1.0);
+const vec4 s_accent_2 = vec4(1.,0.922,0.906, 1.0);
+const vec4 s_accent_3 = vec4(1.,0.922,0.906, 1.0);
+const vec4 s_primary = vec4(0.624,0.525,0.753, 1.0);
+const vec4 s_water = vec4(0.325,0.847,0.984, 1.0);
+const vec4 s_secundary = vec4(0.369,0.329,0.557, 1.0);
+const vec4 s_foliage = s_trans;
+*/
+
+// Grayscale Theme:
+/*const vec4 s_accent_1 = vec4(1.0, 1.0, 1.0, 1.0);
+const vec4 s_accent_2 = vec4(1.0, 1.0, 1.0, 1.0);
+const vec4 s_accent_3 = vec4(1.0, 1.0, 1.0, 1.0);
+const vec4 s_primary = vec4(1.0, 1.0, 1.0, 1.0);
+const vec4 s_water = vec4(1.0, 1.0, 1.0, 1.0);
+const vec4 s_secundary = vec4(1.0, 1.0, 1.0, 1.0);
+const vec4 s_foliage = s_trans;
+*/
+
+
+/*const vec4 c_Colormap[] = vec4[](
+    vec4(0.3, 0.3, 0.3, 0.5), // unknown
+    vec4(1.00, 0.32, 0.31, 1.0), // highway motorway
+    vec4(1.00, 0.56, 0.31, 1.0), // highway trunk
+    vec4(1.00, 0.71, 0.31, 1.0), // highway primary
+    vec4(1.00, 0.87, 0.52, 1.0), // highway secondary
+    vec4(0.77, 0.77, 0.77, 1.0), // highway tertiary
+    vec4(0.70, 0.70, 0.70, 1.0), // highway unclassified
+    vec4(0.77, 0.77, 0.77, 1.0), // highway residential
+    vec4(0.55, 0.75, 0.89, 1.0), // living street
+    vec4(0.33, 0.33, 0.33, 1.0), // service
+    vec4(0.33, 0.69, 0.55, 1.0), // pedestrian
+    vec4(0.48, 0.40, 0.30, 1.0), // track
+    vec4(0.32, 0.34, 0.55, 1.0), // busway
+    vec4(0.50, 0.50, 0.50, 1.0), // footway
+    vec4(0.50, 0.40, 0.59, 1.0), // cycleway
+    vec4(0.50, 0.50, 0.50, 1.0), // footway sidewalk
+    vec4(1.0), // footway crossing
+
+    vec4(1.0), // railway
+    vec4(0.36, 0.49, 0.89, 1.0), // waterway
+    vec4(0.36, 0.49, 0.89, 1.0), // lake
+
+    vec4(0.58, 0.75, 0.41, 1.0), // landuse agricultural
+    vec4(0.24, 0.36, 0.22, 1.0), // landuse forest
+    vec4(0.89, 0.55, 0.62, 1.0), // landuse industrial
+    vec4(0.58, 0.75, 0.41, 1.0), // landuse recreational
+    vec4(0.89, 0.55, 0.62, 1.0), // landuse transport
+    vec4(0.89, 0.55, 0.62, 1.0), // landuse commercial
+    vec4(0.3, 0.3, 0.3, 0.5), // landuse residential
+    
+    vec4(0.85, 0.28, 0.28, 1.0), // aerialway
+
+    vec4(0.46, 0.18, 0.63, 1.0), // power lines
+    vec4(0.46, 0.18, 0.63, 1.0), // power distribution
+
+    vec4(1.0, 0.0, 1.0, 1.0)
+);*/
+
+void MapView::load_presets() {
+    m_presets["Navy"] = std::make_shared<PresetTheme>(NAVY_THEME);
+    m_presets["Sage"] = std::make_shared<PresetTheme>(SAGE_THEME);
+
+    m_theme = m_presets["Sage"];
+}
+
+void MapView::menu_item() {
+    if(ImGui::BeginMenu("View")) {
+        ImGui::BeginDisabled(m_theme == nullptr);
+        if(ImGui::MenuItem("Edit Theme")) {
+            m_editing = true;            
+        }
+
+        ImGui::EndDisabled();
+
+        if(ImGui::BeginMenu("Load Preset")) {
+            for(auto [name, preset] : m_presets) {
+                if(ImGui::MenuItem(name.c_str()))
+                    m_theme = preset;
+            }
+
+            ImGui::EndMenu();
+        }
+
+        ImGui::EndMenu();
+    }
+}
+
+void MapView::draw_ui(InputState& input) {
+    if(!m_editing)
+        return;
+
+    assert(m_theme != nullptr);
+
+    ImGui::Begin("Theme Editor", &m_editing);
+
+    ImGui::ColorEdit4("BACKGROUND", reinterpret_cast<float*>(&(m_theme->background())));
+
+    ImGui::Separator();
+
+    for(size_t i = 0; i < MapTheme::N; i++) {
+        auto class_ = Metadata::Classification(i);
+
+        ImGui::ColorEdit4(Metadata::classification_name(class_)->c_str(), reinterpret_cast<float*>(&(**m_theme)[class_]));
+    }
+
+    ImGui::End();
 }
 

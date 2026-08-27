@@ -173,3 +173,70 @@ private:
     friend std::expected<std::shared_ptr<Map>, int> load_map(std::string, std::shared_ptr<Map>, MapLoader*);
 };
 
+class MapTheme {
+public:
+    static constexpr auto N = static_cast<std::size_t>(Metadata::__CLASSIFICATION_LAST);
+    static constexpr auto INVAL_COLOR = glm::vec4(1.0, 0.0, 1.0, 1.0);
+
+    MapTheme(std::unordered_map<Metadata::Classification, glm::vec4> init, glm::vec3 background)
+        : m_background(background)
+    {
+        m_entries.fill(INVAL_COLOR);
+
+        for(auto [class_, color] : init) {
+            m_entries[static_cast<std::size_t>(class_)] = color;
+        }
+    }
+
+    void use(const Shader& shader);
+
+    inline auto operator[](Metadata::Classification classification) -> std::optional<glm::vec4> const {
+        if(classification < 0 || static_cast<std::size_t>(classification) >= N)
+            return std::nullopt;
+        return m_entries[classification];
+    }
+
+    inline auto operator*() -> std::array<glm::vec4, N>& {
+        return m_entries;
+    }
+
+    inline glm::vec3& background() {
+        return m_background;
+    }
+
+protected:
+    std::array<glm::vec4, N> m_entries;
+    glm::vec3 m_background;
+};
+
+class PresetTheme : public MapTheme {
+public:
+    PresetTheme(glm::vec4 primary, glm::vec4 secundary, glm::vec4 water, glm::vec4 foliage, std::array<glm::vec4, 3> accent, glm::vec3 m_background, glm::vec4 trans = glm::vec4(0.0));
+};
+
+class MapView : public RenderElement {
+public:
+    MapView() { load_presets(); }
+
+    void load_presets();
+
+    inline std::shared_ptr<MapTheme> get_theme() const {
+        return m_theme;
+    }
+
+    virtual void menu_item() override;
+
+    virtual void draw_scene(Viewport& viewport, InputState& input) override {};
+    virtual void draw_ui(InputState& input) override;
+
+    virtual int get_z_index() const override {
+        return -1;
+    }
+
+private:
+    bool m_editing;
+
+    std::shared_ptr<MapTheme> m_theme;
+    std::unordered_map<std::string, std::shared_ptr<MapTheme>> m_presets;
+};
+

@@ -18,17 +18,19 @@ float map(float value, float inMin, float inMax, float outMin, float outMax) {
 void main() {
     float h = texture(u_Texture, v_TexCoord).r;
 
-    float level = (h - u_HeightRange.x) / u_Spacing;
+    float level = (h /* - u_HeightRange.x */) / u_Spacing;
     float distToLine = abs(fract(level) - 0.5);
 
     float width = length(vec2(dFdx(h), dFdy(h))) / u_Spacing;
+
+    bool is_major = mod(h, 200) < 100;
     float aa = width * u_Epsilon;
 
     float line = 1.0 - smoothstep(0.0, aa, distToLine);
 
-    float brightness = map(h, u_HeightRange.x, u_HeightRange.y, 0.0, 1.0);
+    // float brightness = map(h, u_HeightRange.x, u_HeightRange.y, 0.0, 1.0);
 
-    vec3 lineColor = u_Color.xyz * brightness;
+    vec3 lineColor = u_Color.xyz * (0.7 + 0.3 * float(!is_major))/* * brightness */;
     frag_Color = vec4(mix(u_BackgroundColor, lineColor, line * line), 1.0);
 
     /*float h = texture(u_Texture, v_TexCoord).r;

@@ -18,7 +18,9 @@ SOURCES := $(wildcard $(IMGUI_DIR)/*.cpp) $(IMGUI_DIR)/backends/imgui_impl_glfw.
 OBJECTS := $(patsubst %.cpp, $(BUILD_DIR)/%.o, $(SOURCES)) $(NFD_OBJECTS)
 HEADERS := $(wildcard $(INCLUDE_DIR)/*.hpp)
 
-CXXFLAGS += -Wall -Wextra -pedantic -std=c++23 $(shell pkg-config --cflags $(LIBRARIES)) -Iinclude -I$(IMGUI_DIR) -I$(NFD_INCLUDE_DIR) -ggdb
+CXX := g++
+
+CXXFLAGS += -Wall -Wextra -pedantic -std=c++26 -freflection $(shell pkg-config --cflags $(LIBRARIES)) -Iinclude -I$(IMGUI_DIR) -I$(NFD_INCLUDE_DIR) -ggdb
 LDFLAGS += $(shell pkg-config --libs $(LIBRARIES)) -lm -ltiff
 
 .PHONY: all

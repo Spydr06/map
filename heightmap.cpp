@@ -1,6 +1,7 @@
 #include "heightmap.hpp"
 
 #include "log.hpp"
+#include "main.hpp"
 #include "rendercontext.hpp"
 #include "renderutil.hpp"
 #include "viewport.hpp"
@@ -301,7 +302,7 @@ void HeightmapContourMode::begin_render(Heightmap& heightmap, Viewport& viewport
     m_shader->upload_uniform("u_Spacing", m_spacing);
     m_shader->upload_uniform("u_HeightRange", glm::vec2(min_height, max_height));
     m_shader->upload_uniform("u_Color", m_color);
-    m_shader->upload_uniform("u_BackgroundColor", DEFAULT_CLEAR_COLOR);
+    m_shader->upload_uniform("u_BackgroundColor", context->get_clear_color());
 }
 
 void HeightmapContourMode::draw_ui(Heightmap& heightmap) {

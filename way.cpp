@@ -10,6 +10,7 @@
 #include <string>
 #include <unordered_map>
 #include <fstream>
+#include <meta>
 
 const DrawPriority classification_draw_priorities[] {
     DrawPriority::BUILDING, // UNKNOWN
@@ -323,5 +324,15 @@ WindingOrder Way::get_winding_order() const {
     }
 
     return sum > 0.0 ? WindingOrder::CLOCKWISE : WindingOrder::COUNTER_CLOCKWISE;
+}
+
+
+auto Metadata::classification_name(Metadata::Classification classification) -> std::optional<std::string> {
+    template for(constexpr auto e : std::define_static_array(std::meta::enumerators_of(^^Metadata::Classification))) {
+        if(classification == [: e :]) 
+            return std::string(std::meta::identifier_of(e));
+    }
+
+    return std::nullopt;
 }
 

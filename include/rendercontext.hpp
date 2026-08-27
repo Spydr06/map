@@ -1,18 +1,15 @@
 #pragma once
 
-#include "map.hpp"
-#include "inputstate.hpp"
 #include "viewport.hpp"
 #include "renderutil.hpp"
+#include "map.hpp"
+#include "inputstate.hpp"
 
 #include <memory>
 #include <set>
 
 #include <GL/glew.h>
 #include <glm/vec3.hpp>
-
-// Blue Theme:
-// #define DEFAULT_CLEAR_COLOR glm::vec3(1.0f, 0.953f, 0.914f)
 
 // Red Theme:
 // #define DEFAULT_CLEAR_COLOR glm::vec3(1.,0.976,0.925)
@@ -22,7 +19,6 @@
 
 // Green Theme:
 // #define DEFAULT_CLEAR_COLOR glm::vec3(0.082,0.075,0.078)
-#define DEFAULT_CLEAR_COLOR glm::vec3(0.184,0.243,0.275)
 
 // Grayscale Theme:
 // #define DEFAULT_CLEAR_COLOR glm::vec3(0.0, 0.0, 0.0)
@@ -64,6 +60,10 @@ public:
     }
 
     inline auto& get_clear_color() {
+        if(auto view = get_element<MapView>()) {
+            if(view->get_theme() != nullptr)
+                return view->get_theme()->background();
+        }
         return m_clearcolor;
     }
 
@@ -75,7 +75,7 @@ private:
 
     std::multiset<std::shared_ptr<RenderElement>, RenderElement::Comparator> m_elements;
     
-    glm::vec3 m_clearcolor = DEFAULT_CLEAR_COLOR;
+    glm::vec3 m_clearcolor = glm::vec3(0.0);
     Viewport m_viewport;
     InputState m_input_state;
 

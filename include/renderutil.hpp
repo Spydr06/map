@@ -109,6 +109,14 @@ public:
         glUniform4f(glGetUniformLocation(m_id, uniform.c_str()), value.x, value.y, value.z, value.w);
     }
 
+    template<std::size_t N>
+    inline void upload_uniform(const std::string& uniform, std::array<glm::vec4, N>& value) const {
+        auto location = static_cast<std::size_t>(glGetUniformLocation(m_id, uniform.c_str()));
+        assert(location + N <= GL_MAX_UNIFORM_LOCATIONS);
+
+        glUniform4fv(location, static_cast<GLsizei>(N), reinterpret_cast<float*>(value.data()));
+    }
+
 private:
     std::optional<std::string> m_err;
     GLuint m_id;

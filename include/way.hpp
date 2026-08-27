@@ -4,6 +4,7 @@
 
 #include <optional>
 #include <string>
+#include <string_view>
 #include <unordered_map>
 #include <vector>
 
@@ -76,6 +77,8 @@ struct Metadata {
 
         __CLASSIFICATION_LAST
     };
+
+    static auto classification_name(Metadata::Classification classification) -> std::optional<std::string>;
 
     Metadata(std::unordered_map<std::string, std::string>& tags);
     Metadata()

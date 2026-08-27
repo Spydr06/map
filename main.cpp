@@ -11,6 +11,7 @@
 #include "rendercontext.hpp"
 #include "renderutil.hpp"
 #include "screenshot.hpp"
+#include "settings.hpp"
 #include "taginfo.hpp"
 #include "timer.hpp"
 
@@ -139,6 +140,7 @@ auto main(int argc, char** argv) -> int {
     }
 
     context->add_element(std::make_shared<MapLoader>());
+    context->add_element(std::make_shared<MapView>());
     context->add_element(std::make_shared<Overlay>());
     context->add_element(std::make_shared<Console>());
 
