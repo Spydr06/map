@@ -89,10 +89,6 @@ static void XMLCALL leave_element(void* user_data, const XML_Char* name) {
         assert(data->m_current_way != nullptr);
 
         auto metadata = data->m_current_way->parse_metadata();
-/*        if(metadata.m_classification == Metadata::UNKNOWN) {
-            data->m_current_way = nullptr;
-            return;
-        } */
 
         for(auto& node : data->m_current_way->get_nodes()) {
             node.m_metadata = metadata;

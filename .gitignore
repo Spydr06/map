@@ -1,5 +1,6 @@
 # build files
 build/
+.direnv/
 *.o
 *.a
 *.out
@@ -21,6 +22,5 @@ data.txt
 datasets/
 heightmap/
 cache/
-*.ini
 *.txt
 

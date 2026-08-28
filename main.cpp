@@ -3,6 +3,7 @@
 #include <vector>
 #include <memory>
 
+#include "main.hpp"
 #include "heightmap.hpp"
 #include "log.hpp"
 #include "map.hpp"
@@ -30,6 +31,59 @@ std::unique_ptr<RenderContext> context = nullptr;
 static void usage(const char *progname) {
     mlog::logln(mlog::ERROR, "Usage: %s [<osm xml file>] [-t <taginfo xml file>] [-h <heightmap geotiff>]", progname);
     std::exit(EXIT_SUCCESS);
+}
+
+static void set_style(ImGuiStyle& s);
+
+class Help : public RenderElement {
+public:
+    virtual void menu_item() override;
+
+    virtual void draw_scene(Viewport&, InputState&) override {};
+    virtual void draw_ui(InputState& input) override;
+
+    virtual int get_z_index() const override {
+        return -1;
+    }
+private:
+    void about_dialog();
+
+    bool m_about_showing = false;
+};
+
+void Help::menu_item() {
+    if(ImGui::BeginMenu("Help")) {
+        if(ImGui::MenuItem("About Mapviewer")) {
+            m_about_showing = true;
+        }
+
+        ImGui::EndMenu();
+    }
+}
+
+void Help::draw_ui(InputState& input) {
+    if(m_about_showing)
+        about_dialog();
+}
+
+void Help::about_dialog() {
+    static char about_text[] = 
+R"(OpenStreetMap (OSM) Viewer and Heightmap generator.
+
+Copyright (C) 2026 Spydr06
+Licensed under the MIT License.
+
+This is free software; see the source for copying conditions.
+There is NO warranty.
+
+Source code: https://github.com/spydr06/map
+Version: )" VERSION_STRING "\n";
+
+    ImGui::Begin("About", &m_about_showing);
+
+    ImGui::InputTextMultiline("##about_text", about_text, IM_COUNTOF(about_text), ImVec2(-FLT_MIN, -FLT_MIN), ImGuiInputTextFlags_ReadOnly);
+
+    ImGui::End();
 }
 
 auto main(int argc, char** argv) -> int {
@@ -104,12 +158,24 @@ auto main(int argc, char** argv) -> int {
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
 
-    ImGui_ImplGlfw_InitForOpenGL(window, true);
-    ImGui_ImplOpenGL3_Init("#version 450 core");
+    auto main_scale = ImGui_ImplGlfw_GetContentScaleForMonitor(glfwGetPrimaryMonitor());
     
     auto& io = ImGui::GetIO();
-    io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
-    //io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
+    io.ConfigFlags |= ImGuiConfigFlags_DockingEnable 
+                   | ImGuiConfigFlags_ViewportsEnable
+                   | ImGuiConfigFlags_DpiEnableScaleFonts 
+                   | ImGuiConfigFlags_DpiEnableScaleViewports;
+    io.ConfigDpiScaleFonts = true;
+    io.ConfigDpiScaleViewports = true;
+    
+    auto& style = ImGui::GetStyle();
+    style.ScaleAllSizes(main_scale);
+    style.FontScaleDpi = main_scale;
+
+    set_style(style);
+
+    ImGui_ImplGlfw_InitForOpenGL(window, true);
+    ImGui_ImplOpenGL3_Init("#version 450 core");
 
     context = std::make_unique<RenderContext>(window_size);
 
@@ -143,6 +209,7 @@ auto main(int argc, char** argv) -> int {
     context->add_element(std::make_shared<MapView>());
     context->add_element(std::make_shared<Overlay>());
     context->add_element(std::make_shared<Console>());
+    context->add_element(std::make_shared<Help>());
 
     glfwSetWindowContentScaleCallback(window, [](GLFWwindow*, float xscale, float yscale) {
         auto& io = ImGui::GetIO();
@@ -235,18 +302,17 @@ auto main(int argc, char** argv) -> int {
         ImGui::NewFrame();
 
         ImGui::DockSpaceOverViewport(0, ImGui::GetMainViewport(), ImGuiDockNodeFlags_PassthruCentralNode);
-        
+
         context->draw_ui();
 
         ImGui::Render();
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
-        if(io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
-        {
-            auto* backup_context = glfwGetCurrentContext();
+        if(io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable) {
+            GLFWwindow* context_save = glfwGetCurrentContext();
             ImGui::UpdatePlatformWindows();
             ImGui::RenderPlatformWindowsDefault();
-            glfwMakeContextCurrent(backup_context);
+            glfwMakeContextCurrent(context_save);
         }
 
         if(auto screenshot = context->get_element<Screenshot>()) {
@@ -273,4 +339,92 @@ auto main(int argc, char** argv) -> int {
 
     return 0;
 }
+
+static void set_style(ImGuiStyle& style) {
+    style.Alpha = 0.9f;
+	style.DisabledAlpha = 0.8f;
+	style.WindowPadding = ImVec2(8.0f, 8.0f);
+	style.WindowRounding = 4.0f;
+	style.WindowBorderSize = 1.0f;
+	style.WindowMinSize = ImVec2(32.0f, 32.0f);
+	style.WindowTitleAlign = ImVec2(0.0f, 0.5f);
+	style.WindowMenuButtonPosition = ImGuiDir_Left;
+	style.ChildRounding = 4.0f;
+	style.ChildBorderSize = 1.0f;
+	style.PopupRounding = 4.0f;
+	style.PopupBorderSize = 1.0f;
+	style.FramePadding = ImVec2(4.0f, 3.0f);
+	style.FrameRounding = 4.0f;
+	style.FrameBorderSize = 1.0f;
+	style.ItemSpacing = ImVec2(8.0f, 4.0f);
+	style.ItemInnerSpacing = ImVec2(4.0f, 4.0f);
+	style.CellPadding = ImVec2(4.0f, 2.0f);
+	style.IndentSpacing = 21.0f;
+	style.ColumnsMinSpacing = 6.0f;
+	style.ScrollbarSize = 13.0f;
+	style.ScrollbarRounding = 12.0f;
+	style.GrabMinSize = 7.0f;
+	style.GrabRounding = 4.0f;
+	style.TabRounding = 4.0f;
+	style.TabBorderSize = 1.0f;
+	// style.TabMinWidthForCloseButton = 0.0f;
+	style.ColorButtonPosition = ImGuiDir_Right;
+	style.ButtonTextAlign = ImVec2(0.5f, 0.5f);
+	style.SelectableTextAlign = ImVec2(0.0f, 0.0f);
+	
+	style.Colors[ImGuiCol_Text] = ImVec4(1.0f, 1.0f, 1.0f, 1.0f);
+	style.Colors[ImGuiCol_TextDisabled] = ImVec4(0.49803922f, 0.49803922f, 0.49803922f, 1.0f);
+	style.Colors[ImGuiCol_WindowBg] = ImVec4(0.1764706f, 0.1764706f, 0.1764706f, 1.0f);
+	style.Colors[ImGuiCol_ChildBg] = ImVec4(0.2784314f, 0.2784314f, 0.2784314f, 0.0f);
+	style.Colors[ImGuiCol_PopupBg] = ImVec4(0.30980393f, 0.30980393f, 0.30980393f, 1.0f);
+	style.Colors[ImGuiCol_Border] = ImVec4(0.2627451f, 0.2627451f, 0.2627451f, 1.0f);
+	style.Colors[ImGuiCol_BorderShadow] = ImVec4(0.0f, 0.0f, 0.0f, 0.0f);
+	style.Colors[ImGuiCol_FrameBg] = ImVec4(0.15686275f, 0.15686275f, 0.15686275f, 1.0f);
+	style.Colors[ImGuiCol_FrameBgHovered] = ImVec4(0.2f, 0.2f, 0.2f, 1.0f);
+	style.Colors[ImGuiCol_FrameBgActive] = ImVec4(0.2784314f, 0.2784314f, 0.2784314f, 1.0f);
+	style.Colors[ImGuiCol_TitleBg] = ImVec4(0.14509805f, 0.14509805f, 0.14509805f, 1.0f);
+	style.Colors[ImGuiCol_TitleBgActive] = ImVec4(0.14509805f, 0.14509805f, 0.14509805f, 1.0f);
+	style.Colors[ImGuiCol_TitleBgCollapsed] = ImVec4(0.14509805f, 0.14509805f, 0.14509805f, 1.0f);
+	style.Colors[ImGuiCol_MenuBarBg] = ImVec4(0.19215687f, 0.19215687f, 0.19215687f, 1.0f);
+	style.Colors[ImGuiCol_ScrollbarBg] = ImVec4(0.15686275f, 0.15686275f, 0.15686275f, 1.0f);
+	style.Colors[ImGuiCol_ScrollbarGrab] = ImVec4(0.27450982f, 0.27450982f, 0.27450982f, 1.0f);
+	style.Colors[ImGuiCol_ScrollbarGrabHovered] = ImVec4(0.29803923f, 0.29803923f, 0.29803923f, 1.0f);
+	style.Colors[ImGuiCol_ScrollbarGrabActive] = ImVec4(0.55f, 0.4f, 0.7f, 1.0f);
+	style.Colors[ImGuiCol_CheckMark] = ImVec4(1.0f, 1.0f, 1.0f, 1.0f);
+	style.Colors[ImGuiCol_SliderGrab] = ImVec4(0.3882353f, 0.3882353f, 0.3882353f, 1.0f);
+	style.Colors[ImGuiCol_SliderGrabActive] = ImVec4(0.55f, 0.4f, 0.7f, 1.0f);
+	style.Colors[ImGuiCol_Button] = ImVec4(1.0f, 1.0f, 1.0f, 0.0f);
+	style.Colors[ImGuiCol_ButtonHovered] = ImVec4(1.0f, 1.0f, 1.0f, 0.156f);
+	style.Colors[ImGuiCol_ButtonActive] = ImVec4(1.0f, 1.0f, 1.0f, 0.391f);
+	style.Colors[ImGuiCol_Header] = ImVec4(0.30980393f, 0.30980393f, 0.30980393f, 1.0f);
+	style.Colors[ImGuiCol_HeaderHovered] = ImVec4(0.46666667f, 0.46666667f, 0.46666667f, 1.0f);
+	style.Colors[ImGuiCol_HeaderActive] = ImVec4(0.46666667f, 0.46666667f, 0.46666667f, 1.0f);
+	style.Colors[ImGuiCol_Separator] = ImVec4(0.2627451f, 0.2627451f, 0.2627451f, 1.0f);
+	style.Colors[ImGuiCol_SeparatorHovered] = ImVec4(0.3882353f, 0.3882353f, 0.3882353f, 1.0f);
+	style.Colors[ImGuiCol_SeparatorActive] = ImVec4(0.55f, 0.4f, 0.7f, 1.0f);
+	style.Colors[ImGuiCol_ResizeGrip] = ImVec4(1.0f, 1.0f, 1.0f, 0.25f);
+	style.Colors[ImGuiCol_ResizeGripHovered] = ImVec4(1.0f, 1.0f, 1.0f, 0.67f);
+	style.Colors[ImGuiCol_ResizeGripActive] = ImVec4(0.55f, 0.4f, 0.8f, 1.0f);
+	style.Colors[ImGuiCol_Tab] = ImVec4(0.09411765f, 0.09411765f, 0.09411765f, 1.0f);
+	style.Colors[ImGuiCol_TabHovered] = ImVec4(0.34901962f, 0.34901962f, 0.34901962f, 1.0f);
+	style.Colors[ImGuiCol_TabActive] = ImVec4(0.19215687f, 0.19215687f, 0.19215687f, 1.0f);
+	style.Colors[ImGuiCol_TabUnfocused] = ImVec4(0.09411765f, 0.09411765f, 0.09411765f, 1.0f);
+	style.Colors[ImGuiCol_TabUnfocusedActive] = ImVec4(0.19215687f, 0.19215687f, 0.19215687f, 1.0f);
+	style.Colors[ImGuiCol_PlotLines] = ImVec4(0.46666667f, 0.46666667f, 0.46666667f, 1.0f);
+	style.Colors[ImGuiCol_PlotLinesHovered] = ImVec4(0.55f, 0.4f, 0.7f, 1.0f);
+	style.Colors[ImGuiCol_PlotHistogram] = ImVec4(0.58431375f, 0.58431375f, 0.58431375f, 1.0f);
+	style.Colors[ImGuiCol_PlotHistogramHovered] = ImVec4(0.55f, 0.4f, 0.7f, 1.0f);
+	style.Colors[ImGuiCol_TableHeaderBg] = ImVec4(0.1882353f, 0.1882353f, 0.2f, 1.0f);
+	style.Colors[ImGuiCol_TableBorderStrong] = ImVec4(0.30980393f, 0.30980393f, 0.34901962f, 1.0f);
+	style.Colors[ImGuiCol_TableBorderLight] = ImVec4(0.22745098f, 0.22745098f, 0.24705882f, 1.0f);
+	style.Colors[ImGuiCol_TableRowBg] = ImVec4(0.0f, 0.0f, 0.0f, 0.0f);
+	style.Colors[ImGuiCol_TableRowBgAlt] = ImVec4(1.0f, 1.0f, 1.0f, 0.06f);
+	style.Colors[ImGuiCol_TextSelectedBg] = ImVec4(1.0f, 1.0f, 1.0f, 0.156f);
+	style.Colors[ImGuiCol_DragDropTarget] = ImVec4(0.55f, 0.4f, 0.7f, 1.0f);
+	style.Colors[ImGuiCol_NavHighlight] = ImVec4(0.55f, 0.4f, 0.7f, 1.0f);
+	style.Colors[ImGuiCol_NavWindowingHighlight] = ImVec4(0.55f, 0.4f, 0.7f, 1.0f);
+	style.Colors[ImGuiCol_NavWindowingDimBg] = ImVec4(0.0f, 0.0f, 0.0f, 0.586f);
+	style.Colors[ImGuiCol_ModalWindowDimBg] = ImVec4(0.0f, 0.0f, 0.0f, 0.586f);
+}
+
 

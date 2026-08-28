@@ -354,7 +354,7 @@ void MapView::menu_item() {
 
         if(ImGui::BeginMenu("Load Preset")) {
             for(auto [name, preset] : m_presets) {
-                if(ImGui::MenuItem(name.c_str()))
+                if(ImGui::MenuItem(name.c_str(), nullptr, m_theme == preset))
                     m_theme = preset;
             }
 
@@ -373,7 +373,7 @@ void MapView::draw_ui(InputState& input) {
 
     ImGui::Begin("Theme Editor", &m_editing);
 
-    ImGui::ColorEdit4("BACKGROUND", reinterpret_cast<float*>(&(m_theme->background())));
+    ImGui::ColorEdit3("BACKGROUND", reinterpret_cast<float*>(&(m_theme->background())));
 
     ImGui::Separator();
 
