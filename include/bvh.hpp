@@ -14,7 +14,10 @@ public:
     BVH(std::pair<glm::vec2, glm::vec2> minmax_coords, size_t max_depth, size_t depth);
 
     void add_way(std::shared_ptr<Way> way);
+    void rebuild_vaos();
+
     void draw(BBox& viewport, DrawPriority priority, size_t max_depth, size_t depth, float scale);
+
 
     std::pair<float, std::shared_ptr<Way>> get_nearest_way(glm::vec2 coords, DrawPriority priority) const;
 

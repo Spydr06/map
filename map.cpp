@@ -1,17 +1,21 @@
 #include "map.hpp"
 #include "inspector.hpp"
 #include "preprocess.hpp"
+#include "rendercontext.hpp"
 #include "screenshot.hpp"
 #include "way.hpp"
 #include "log.hpp"
 #include "renderutil.hpp"
 #include "main.hpp"
 
+#include <cerrno>
 #include <cmath>
+#include <cstring>
 #include <expected>
 #include <filesystem>
 #include <fstream>
 
+#include <future>
 #include <imgui.h>
 #include <memory>
 #include <nfd.h>
@@ -41,6 +45,38 @@ static const PresetTheme SAGE_THEME(
     },
     glm::vec3(0.184,0.243,0.275)
 );
+
+static const PresetTheme GRAYSCALE_THEME(
+    glm::vec4(1.0, 1.0, 1.0, 1.0),
+    glm::vec4(1.0, 1.0, 1.0, 1.0),
+    glm::vec4(1.0, 1.0, 1.0, 1.0),
+    glm::vec4(0.3, 0.3, 0.3, 1.0),
+    std::array<glm::vec4, 3>{
+        glm::vec4(1.0, 1.0, 1.0, 1.0),
+        glm::vec4(1.0, 1.0, 1.0, 1.0),
+        glm::vec4(1.0, 1.0, 1.0, 1.0)
+    },
+    glm::vec3(0.0, 0.0, 0.0)
+);
+
+
+void Progress::draw_progress_bar() const {
+    auto total = m_total.load();
+    auto progress = m_progress.load();
+    auto frac = progress / total; 
+
+    std::string s = std::format("{:.1f} of {:.1f} {} ({:.1f}%)", progress, total, m_unit, frac * 100.0f);
+    ImGui::ProgressBar(frac, ImVec2(-FLT_MIN, 0), s.c_str());
+}
+
+void Progress::update(float progress) {
+    m_progress = progress;
+}
+
+void Progress::set_total(float total) {
+    m_total = total;
+}
+
 
 Map::Map()
     : m_bvh(nullptr), m_tools{}
@@ -75,6 +111,14 @@ void Map::init_bvh(std::pair<glm::vec2, glm::vec2> minmax_coords, size_t max_dep
     m_bvh = std::make_unique<BVH>(minmax_coords, max_depth, 0);
 }
 
+void Map::rebuild_vaos() {
+    assert(m_bvh);
+    
+    mlog::logln(mlog::INFO, "rebuilding vertex arrays...");
+    m_bvh->rebuild_vaos();
+    mlog::logln(mlog::INFO, "done.");
+}
+
 void Map::draw_scene(Viewport& viewport, InputState& input) {
     if(m_heightmap != nullptr)
         m_heightmap->draw_scene(viewport, input);
@@ -100,7 +144,6 @@ void Map::draw_scene(Viewport& viewport, InputState& input) {
         selected_tool->draw_scene(*this, viewport, input);
     }
 }
-
 
 void Map::menu_item() {
     std::string tools_menu = "Tools";
@@ -133,7 +176,6 @@ void Map::draw_ui(InputState& input) {
     ImGui::SliderInt("Draw Priority", reinterpret_cast<int*>(&m_draw_priority), __DRAW_PRIORITY_FIRST, __DRAW_PRIO_LAST);
 
     ImGui::End();
-
 
 
     ImGui::Begin("Tools");
@@ -172,28 +214,35 @@ static std::optional<std::string> file_dialog(const nfdchar_t* filter) {
     }
 }
 
-std::expected<std::shared_ptr<Map>, int> load_map(std::string xml_path, std::shared_ptr<Map> map, MapLoader *loader) {
-    if(int err = preprocess_data(xml_path, map, &loader->m_loading_map_progress)) {
-        return std::unexpected(err);
-    }
+std::expected<std::shared_ptr<Map>, int> load_map(std::string xml_path, std::shared_ptr<Map> map, std::unique_ptr<LoaderContext> context, MapLoader *loader) {
+    if(!context->make_current())
+        return std::unexpected(EFAULT);
 
+    int err = preprocess_data(xml_path, map, &loader->m_loading_progress);
+    context->finalize();
+
+    if(err)
+        return std::unexpected(err);
     return map;
 }
 
 void MapLoader::menu_item() {
     if(ImGui::BeginMenu("Load")) {
-        ImGui::BeginDisabled(m_loading_map.has_value());
-
         auto map = context->get_element<Map>();
+
+        ImGui::BeginDisabled(m_loading_map.has_value() || map != nullptr);
 
         if(ImGui::MenuItem("Map [osm/xml]")) {
             if(auto osm_path = file_dialog("osm;xml")) {
                 mlog::logln(mlog::INFO, "Loading OSM Map '%s'...", osm_path->c_str());
                 auto map = std::make_shared<Map>();
 
-                m_loading_map = std::async(&load_map, *osm_path, map, this);
+                if(auto loader_context = context->create_loader_context())
+                    m_loading_map = std::async(&load_map, *osm_path, map, std::move(*loader_context), this);
             }
         }
+
+        ImGui::EndDisabled();
 
         ImGui::BeginDisabled(!map);
 
@@ -210,7 +259,6 @@ void MapLoader::menu_item() {
         }
 
         ImGui::EndDisabled();
-        ImGui::EndDisabled();
         ImGui::EndMenu();
     }
 
@@ -219,8 +267,20 @@ void MapLoader::menu_item() {
 void MapLoader::draw_ui(InputState& input) {
     if(auto& loading = m_loading_map) {
         ImGui::Begin("Loading Map...");
-        ImGui::ProgressBar(m_loading_map_progress.load() / 1024.0f / 1024.0f, ImVec2(0.0f, 0.0f), "(MiB)");
+        m_loading_progress.draw_progress_bar();
         ImGui::End();
+
+        if(loading->wait_for(std::chrono::seconds(0)) == std::future_status::ready) {
+            if(auto result = loading->get(); result.has_value()) {
+                mlog::logln(mlog::INFO, "loading done!");
+                (*result)->rebuild_vaos();
+                context->add_map(*result);
+            }
+            else {
+                mlog::logln(mlog::ERROR, "Error loading map: \"%s\"", std::strerror(result.error()));
+            }
+            m_loading_map = std::nullopt;
+        }
     }
 }
 
@@ -339,6 +399,7 @@ const vec4 s_foliage = s_trans;
 void MapView::load_presets() {
     m_presets["Navy"] = std::make_shared<PresetTheme>(NAVY_THEME);
     m_presets["Sage"] = std::make_shared<PresetTheme>(SAGE_THEME);
+    m_presets["Grayscale"] = std::make_shared<PresetTheme>(GRAYSCALE_THEME);
 
     m_theme = m_presets["Sage"];
 }

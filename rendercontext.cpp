@@ -1,10 +1,13 @@
 #include "rendercontext.hpp"
 #include "imgui.h"
 #include "renderutil.hpp"
+#include "map.hpp"
 
+#include <GLFW/glfw3.h>
 #include <GL/glew.h>
 
 #include <cassert>
+#include <memory>
 #include <sstream>
 #include <iostream>
 
@@ -88,6 +91,41 @@ void RenderContext::remove_elements() {
     });
 }
 
+void RenderContext::add_map(std::shared_ptr<Map> map) {
+    m_viewport = Viewport(map->get_minmax_coord());
+    add_element(map);
+}
+
+std::optional<std::unique_ptr<LoaderContext>> RenderContext::create_loader_context() {
+    glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
+    mlog::logln(mlog::DEBUG, "Creating child OpenGL context (parent: %p)", static_cast<void*>(m_window));
+    auto* loader_window = glfwCreateWindow(1, 1, "Loader", nullptr, m_window);
+    if(!loader_window) {
+        mlog::logln(mlog::ERROR, "Error creating temporary GLFW window");
+        return std::nullopt;
+    }
+
+    return std::make_unique<LoaderContext>(loader_window);
+}
+
+bool LoaderContext::make_current() {
+    glfwMakeContextCurrent(m_window);
+
+    glewExperimental = GL_TRUE;
+    if(glewInit() != GLEW_OK) {
+        mlog::logln(mlog::ERROR, "could not create child OpenGL context");
+        return false;
+    }
+    
+    return true;
+}
+
+void LoaderContext::finalize() {
+    glFlush();
+    glFinish();
+    glfwMakeContextCurrent(nullptr);
+}
+
 void Viewport::upload_uniforms(const Shader& shader, glm::vec2 window_size) {
     auto scale = get_scale(window_size);
     shader.upload_uniform("u_Scale", scale);
@@ -156,4 +194,5 @@ Shader::~Shader() {
     if(!has_error())
         glDeleteProgram(m_id);
 }
+
 

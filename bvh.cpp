@@ -59,6 +59,20 @@ void BVH::add_way(std::shared_ptr<Way> way) {
         b->add_way(std::move(way));
 }
 
+void BVH::rebuild_vaos() {
+    for(auto& ways : m_ways) {
+        for(auto& way : ways) {
+            way->rebuild_vaos();
+        }
+    }
+
+    auto& [ a, b ] = m_children;
+    if(a != nullptr)
+        a->rebuild_vaos();
+    if(b != nullptr)
+        b->rebuild_vaos();
+}
+
 void BVH::draw(BBox& viewport, DrawPriority priority, size_t max_depth, size_t depth, float scale)
 {
     if(depth >= max_depth)

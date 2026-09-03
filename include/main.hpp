@@ -3,6 +3,7 @@
 #include "rendercontext.hpp"
 
 #include <memory>
+#include <GLFW/glfw3.h>
 
 #define VERSION_STRING "0.1.0"
 

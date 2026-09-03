@@ -168,6 +168,7 @@ public:
 
     void draw_buffers(float scale);
     void draw_highlighted_buffers(float scale);
+    void rebuild_vaos();
 
     inline void add_node(Node node) {
         increase_bbox(node.m_coord);

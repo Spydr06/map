@@ -20,7 +20,7 @@ HEADERS := $(wildcard $(INCLUDE_DIR)/*.hpp)
 
 CXX := g++
 
-CXXFLAGS += -Wall -Wextra -pedantic -std=c++26 -freflection $(shell pkg-config --cflags $(LIBRARIES)) -Iinclude -I$(IMGUI_DIR) -I$(NFD_INCLUDE_DIR) -ggdb
+CXXFLAGS += -Wall -Wextra -Wno-unused-parameter -pedantic -std=c++26 -freflection $(shell pkg-config --cflags $(LIBRARIES)) -Iinclude -I$(IMGUI_DIR) -I$(NFD_INCLUDE_DIR) -ggdb
 LDFLAGS += $(shell pkg-config --libs $(LIBRARIES)) -lm -ltiff
 
 .PHONY: all

@@ -175,10 +175,8 @@ Metadata::Metadata(std::unordered_map<std::string, std::string>& tags) {
 }
 
 void Way::create_buffers() {
-    glGenVertexArrays(1, &m_vao);
     glGenBuffers(1, &m_vbo);
 
-    assert(m_vao != 0);
     assert(m_vbo != 0);
 
     if((m_indices = triangulate_polygon())) {
@@ -192,6 +190,19 @@ void Way::create_buffers() {
 
     glBindBuffer(GL_ARRAY_BUFFER, m_vbo);
     glBufferData(GL_ARRAY_BUFFER, m_nodes.size() * sizeof(Node), &m_nodes[0], GL_STATIC_DRAW);
+}
+
+void Way::rebuild_vaos() {
+    if(m_vao != 0) {
+        glDeleteVertexArrays(1, &m_vao);
+        m_vao = 0;
+    }
+
+    glGenVertexArrays(1, &m_vao);
+    assert(m_vao != 0);
+
+    glBindBuffer(GL_ARRAY_BUFFER, m_vbo);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_ebo);
 
     glBindVertexArray(m_vao);
     glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(Node), nullptr);
@@ -200,8 +211,7 @@ void Way::create_buffers() {
     glEnableVertexAttribArray(1);
 
     glBindBuffer(GL_ARRAY_BUFFER, 0);
-    if(m_ebo)
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 
     glBindVertexArray(0);
 }

@@ -1,10 +1,12 @@
 #include "log.hpp"
 #include "main.hpp"
 
+#include <chrono>
 #include <cstdarg>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <ratio>
 #include <unistd.h>
 #include <unordered_map>
 
@@ -28,10 +30,10 @@ namespace mlog {
         std::string ansi_color;
         ImVec4 console_color;
     } log_level_table[4] = {
-        {"debug", "\033[0m",  ImVec4(0.7, 0.7, 0.7, 1.0) },
-        {"info",  "\033[36m", ImVec4(1.0, 1.0, 1.0, 1.0) },
-        {"warn",  "\033[33m", ImVec4(1.0, 1.0, 0.0, 1.0) },
-        {"error", "\033[31m", ImVec4(1.0, 0.0, 0.0, 1.0) },
+        {"debug", "\033[0m",  ImVec4(0.7, 0.7, 0.7, 1.0)    },
+        {"info",  "\033[36m", ImVec4(1.0, 1.0, 1.0, 1.0)    },
+        {"warn",  "\033[33m", ImVec4(0.91, 0.77, 0.28, 1.0) },
+        {"error", "\033[31m", ImVec4(1.00, 0.20, 0.20, 1.0) },
     };
 
     static const std::string color_reset = "\033[0m";
@@ -157,6 +159,13 @@ void Console::draw_ui(InputState& input) {
         ImGui::EndMenu();
     }
 
+    if(ImGui::BeginMenu("View")) {
+        if(ImGui::MenuItem("Show Timestamps", nullptr, m_show_timestamps, true))
+            m_show_timestamps = !m_show_timestamps;
+
+        ImGui::EndMenu();
+    }
+
     ImGui::EndMenuBar();
 
     if(ImGui::BeginChild("ScrollRegion##")) {
@@ -168,6 +177,14 @@ void Console::draw_ui(InputState& input) {
 
             if(!m_filter[static_cast<int>(line.level)])
                 continue;
+
+            if(m_show_timestamps) {
+                ImGui::PushStyleColor(ImGuiCol_Text, mlog::log_level_table[mlog::DEBUG].console_color);
+                const std::string tp = std::format("{0:%T}", std::chrono::time_point_cast<std::chrono::duration<int64_t, std::centi>>(line.timestamp));
+                ImGui::Text("%s ", tp.c_str());
+                ImGui::SameLine();
+                ImGui::PopStyleColor();
+            }
 
             ImGui::PushStyleColor(ImGuiCol_Text, log_level.console_color);
             ImGui::Text("[ %s ] ", log_level.str.c_str());    
@@ -194,7 +211,12 @@ void Console::push_line(mlog::Level level, const std::string& line) {
         m_back = (m_back + 1) % m_capacity;
     }
 
-    m_lines[m_front] = LogLine{level, line};
+    const auto time = std::chrono::zoned_time(
+        std::chrono::current_zone(),
+        std::chrono::system_clock::now()
+    );
+
+    m_lines[m_front] = LogLine{level, time, line};
     m_front = (m_front + 1) % m_capacity;
 
     m_scroll_down = m_auto_scroll;

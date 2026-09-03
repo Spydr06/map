@@ -19,6 +19,23 @@
 #include "way.hpp"
 #include "heightmap.hpp"
 
+class Progress {
+public:
+    Progress(std::string unit = "MiB")
+        : m_unit(unit)
+    {}
+
+    void draw_progress_bar() const;
+    void update(float progress);
+    void set_total(float total);
+
+private:
+    std::atomic<float> m_total = 1.0;
+    std::atomic<float> m_progress = 0.0;
+    std::string m_unit;
+};
+
+
 struct CachedTag {
     enum State {
         TAG_STATE_UNLOADED = 0,
@@ -78,12 +95,22 @@ public:
 
     void register_taginfo(std::string& key, std::string& value, std::string& icon_url);
 
+    void rebuild_vaos();
+
     CachedTag* get_taginfo(const std::string& key, const std::string& value);
     std::vector<CachedTag*> get_taginfos(const std::string& key, const std::string& value);
 
     virtual void draw_scene(Viewport& viewport, InputState& input) override;
     virtual void draw_ui(InputState& input) override;
     virtual void menu_item() override;
+
+    inline void mark_removal() {
+        m_remove = true;
+    }
+
+    virtual bool remove() const override {
+        return m_remove;
+    }
 
     inline void add_way(std::shared_ptr<Way> way) {
         assert(m_bvh);
@@ -147,7 +174,10 @@ private:
 
     DrawPriority m_draw_priority = DrawPriority::__DRAW_PRIO_LAST;
     bool m_auto_priority = true;
+    bool m_remove = false;
 };
+
+class LoaderContext;
 
 class MapLoader : public RenderElement {
 public:
@@ -167,10 +197,10 @@ public:
     }
 
 private:
-    std::atomic_int m_loading_map_progress;
+    Progress m_loading_progress{};
     std::optional<std::future<std::expected<std::shared_ptr<Map>, int>>> m_loading_map;
 
-    friend std::expected<std::shared_ptr<Map>, int> load_map(std::string, std::shared_ptr<Map>, MapLoader*);
+    friend std::expected<std::shared_ptr<Map>, int> load_map(std::string, std::shared_ptr<Map>, std::unique_ptr<LoaderContext>, MapLoader*);
 };
 
 class MapTheme {

@@ -1,17 +1,19 @@
 #include "preprocess.hpp"
+#include "imgui.h"
 #include "renderutil.hpp"
 #include "way.hpp"
 #include "log.hpp"
 
 #include <cassert>
 #include <cmath>
+#include <string>
+#include <filesystem>
 #include <fstream>
 #include <cstring>
 
 #include <expat.h>
 #include <memory>
 #include <optional>
-#include <string>
 
 static void XMLCALL enter_element(void* user_data, const XML_Char* name, const XML_Char** atts) {
     auto data = static_cast<PreData*>(user_data);
@@ -105,7 +107,7 @@ auto preprocess_data(const std::string& xml_path, std::shared_ptr<Map> map) -> i
     return preprocess_data(xml_path, map, nullptr);
 }
 
-auto preprocess_data(const std::string& xml_path, std::shared_ptr<Map> map, std::atomic_int* progress) -> int {
+auto preprocess_data(const std::string& xml_path, std::shared_ptr<Map> map, Progress* progress) -> int {
     auto input = std::ifstream(xml_path);
     if(!input.good()) {
         mlog::logln(mlog::ERROR, "Could not open `%s`", xml_path.c_str());
@@ -117,6 +119,13 @@ auto preprocess_data(const std::string& xml_path, std::shared_ptr<Map> map, std:
         mlog::logln(mlog::ERROR, "Could not create XML parser");
         return 1;
     }
+
+    std::filesystem::path p = xml_path;
+    auto size = std::filesystem::file_size(p);
+    
+    // unit is MiB
+    if(progress)
+        progress->set_total(size / 1024.0 / 1024.0);
 
     PreData data(map);
 
@@ -135,7 +144,7 @@ auto preprocess_data(const std::string& xml_path, std::shared_ptr<Map> map, std:
         }
     
         if(progress) {
-            progress->store(input.tellg());
+            progress->update(input.tellg() / 1024.0 / 1024.0);
         }
         else {
             mlog::log(mlog::INFO, "\r%zu MiB parsed", input.tellg() / 1024 / 1024);

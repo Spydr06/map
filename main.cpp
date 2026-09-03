@@ -43,7 +43,7 @@ public:
     virtual void draw_ui(InputState& input) override;
 
     virtual int get_z_index() const override {
-        return -1;
+        return 100;
     }
 private:
     void about_dialog();
@@ -149,6 +149,7 @@ auto main(int argc, char** argv) -> int {
     
     //glfwSwapInterval(0);
 
+    glewExperimental = GL_TRUE;
     if(GLenum err = glewInit()) {
         mlog::logln(mlog::ERROR, "OpenGL error: %s", glewGetErrorString(err));
         glfwTerminate();
@@ -177,19 +178,19 @@ auto main(int argc, char** argv) -> int {
     ImGui_ImplGlfw_InitForOpenGL(window, true);
     ImGui_ImplOpenGL3_Init("#version 450 core");
 
-    context = std::make_unique<RenderContext>(window_size);
+    context = std::make_unique<RenderContext>(window, window_size);
 
     std::shared_ptr<Map> map = nullptr;
     if(osm_path) {
         mlog::logln(mlog::INFO, "Preprocessing data...");
 
         map = std::make_shared<Map>(); 
-        context->add_element(map);
 
         if(int err = preprocess_data(osm_path, map))
             return err;
         
-        context->get_viewport() = Viewport(map->get_minmax_coord());
+        map->rebuild_vaos();
+        context->add_map(map);
 
         if(int err; taginfo_path && (err = load_taginfo(taginfo_path, map))) {
             return err;

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "renderutil.hpp"
+#include <chrono>
 #include <string>
 
 namespace mlog {
@@ -25,6 +26,7 @@ class Console : public RenderElement {
 public:
     struct LogLine {
         mlog::Level level;
+        std::chrono::time_point<std::chrono::system_clock> timestamp;
         std::string line;
     };
 
@@ -55,6 +57,7 @@ public:
 private:
     bool m_auto_scroll = true;
     bool m_scroll_down = false;
+    bool m_show_timestamps = true;
 
     std::array<bool, 4> m_filter{true, true, true, true};
 

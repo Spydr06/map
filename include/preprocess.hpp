@@ -52,5 +52,5 @@ struct PreData {
 };
 
 auto preprocess_data(const std::string& xml_path, std::shared_ptr<Map> map) -> int;
-auto preprocess_data(const std::string& xml_path, std::shared_ptr<Map> map, std::atomic_int* progress) -> int;
+auto preprocess_data(const std::string& xml_path, std::shared_ptr<Map> map, Progress* progress) -> int;
 

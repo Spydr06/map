@@ -1,15 +1,17 @@
 #pragma once
 
+#include "map.hpp"
 #include "viewport.hpp"
 #include "renderutil.hpp"
-#include "map.hpp"
 #include "inputstate.hpp"
 
 #include <memory>
+#include <optional>
 #include <set>
 
 #include <GL/glew.h>
 #include <glm/vec3.hpp>
+#include <GLFW/glfw3.h>
 
 // Red Theme:
 // #define DEFAULT_CLEAR_COLOR glm::vec3(1.,0.976,0.925)
@@ -23,16 +25,40 @@
 // Grayscale Theme:
 // #define DEFAULT_CLEAR_COLOR glm::vec3(0.0, 0.0, 0.0)
 
+class LoaderContext {
+public:
+    LoaderContext(GLFWwindow* window)
+        : m_window(window)
+    {}
+
+    LoaderContext(const LoaderContext&) = delete;
+    ~LoaderContext() {
+        glfwDestroyWindow(m_window);
+        mlog::logln(mlog::DEBUG, "OpenGL child context deleted");
+    }
+
+    bool make_current();
+    void finalize();
+
+private:
+    GLFWwindow* m_window;
+};
+
+
 class RenderContext {
 public:
-    RenderContext(glm::vec2 window_size)
-        : m_elements(), m_viewport(), m_input_state(window_size)
+    RenderContext(GLFWwindow* window, glm::vec2 window_size)
+        : m_elements(), m_viewport(), m_input_state(window_size), m_window(window)
     {}
 
     void draw_scene();
     void draw_ui();
 
     void remove_elements();
+
+    std::optional<std::unique_ptr<LoaderContext>> create_loader_context();
+
+    void add_map(std::shared_ptr<Map> map);
 
     inline void add_element(std::shared_ptr<RenderElement> element) {
         m_elements.insert(element);
@@ -78,6 +104,7 @@ private:
     glm::vec3 m_clearcolor = glm::vec3(0.0);
     Viewport m_viewport;
     InputState m_input_state;
+    GLFWwindow *m_window;
 
     bool m_disable_fill = false;
 };
