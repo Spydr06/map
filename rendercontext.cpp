@@ -24,10 +24,10 @@ void RenderContext::draw_debug_info() {
     auto tr = glm::vec2(view_max.x, view_min.y);
     auto bl = glm::vec2(view_min.x, view_max.x);
 
-    auto view_width_m = measure_mapped_dist(tl, tr);
+    /*auto view_width_m = measure_mapped_dist(tl, tr);
     auto view_width_h = measure_mapped_dist(tl, bl);
 
-    ImGui::Text("viewport size (meters): (%f %f)", view_width_m, view_width_h);
+    ImGui::Text("viewport size (meters): (%f %f)", view_width_m, view_width_h);*/
     
     auto translation = m_viewport.get_translation();
     ImGui::Text("translation: (%f %f)", translation.x, translation.y);
@@ -43,7 +43,6 @@ void RenderContext::draw_debug_info() {
     ImGui::SeparatorText("rendering options");
 
     ImGui::Checkbox("show mesh", &m_disable_fill);
-    ImGui::ColorEdit3("background color", reinterpret_cast<float*>(&m_clearcolor));
 
     ImGui::End();
 }

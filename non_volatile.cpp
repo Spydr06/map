@@ -8,7 +8,7 @@
 #include <memory>
 #include <cctype>
 
-#include "../inipp/inipp.h"
+#include "inipp/inipp.h"
 
 std::shared_ptr<non_volatile_store> settings_store = nullptr;
 

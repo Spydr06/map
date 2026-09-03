@@ -141,8 +141,8 @@ auto main(int argc, char** argv) -> int {
 
     glfwWindowHint(GLFW_SCALE_FRAMEBUFFER, GLFW_TRUE);
 
-    static auto window_width = std::make_unique<non_volatile<int, "window.width">>(1366);
-    static auto window_height = std::make_unique<non_volatile<int, "window.height">>(768);
+    static const auto window_width = std::make_unique<non_volatile<int, "window.width">>(1366);
+    static const auto window_height = std::make_unique<non_volatile<int, "window.height">>(768);
     
     GLFWwindow* window = glfwCreateWindow(*window_width, *window_height, "Map", nullptr, nullptr);
     if(!window) {
