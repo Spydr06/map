@@ -1,5 +1,6 @@
 #include <chrono>
 #include <cstdlib>
+#include <filesystem>
 #include <vector>
 #include <memory>
 
@@ -29,7 +30,7 @@ std::unique_ptr<RenderContext> context = nullptr;
 
 [[noreturn]]
 static void usage(const char *progname) {
-    mlog::logln(mlog::ERROR, "Usage: %s [<osm xml file>] [-t <taginfo xml file>] [-h <heightmap geotiff>]", progname);
+    mlog::logln(mlog::ERROR, "Usage: %s [<osm xml file>] [-t <taginfo xml file>] [-h <heightmap geotiff>] [-s <settings ini>]", progname);
     std::exit(EXIT_SUCCESS);
 }
 
@@ -93,14 +94,24 @@ auto main(int argc, char** argv) -> int {
     const char *taginfo_path = nullptr;
     const char *heightmap_path = nullptr;
 
+    auto home = std::getenv("HOME");
+    assert(home && "$HOME Environment variable not set.");
+    
+    std::filesystem::path settings_path = home;
+    settings_path /= ".config";
+    settings_path /= SETTINGS_DEFAULT_FILENAME;
+
     int opt;
-    while((opt = getopt(argc, argv, "t:h:")) != EOF) {
+    while((opt = getopt(argc, argv, "t:h:s:")) != EOF) {
         switch(opt) {
         case 'h':
             heightmap_path = optarg;
             break;
         case 't':
             taginfo_path = optarg;
+            break;
+        case 's':
+            settings_path = std::filesystem::path(optarg);
             break;
         default:
             usage(argv[0]);
@@ -113,6 +124,8 @@ auto main(int argc, char** argv) -> int {
     else if(optind == argc - 1) {
         osm_path = argv[optind];
     }
+
+    settings_store = std::make_shared<ini_store>(settings_path);
 
     if(!osm_path && (taginfo_path || heightmap_path)) {
         mlog::logln(mlog::ERROR, "Cannot load tag or heightmap information without an OSM map");

@@ -401,12 +401,16 @@ void MapView::load_presets() {
     m_presets["Sage"] = std::make_shared<PresetTheme>(SAGE_THEME);
     m_presets["Grayscale"] = std::make_shared<PresetTheme>(GRAYSCALE_THEME);
 
-    m_theme = m_presets["Sage"];
+    if(m_presets.find(m_theme) == m_presets.end()) {
+        mlog::logln(mlog::ERROR, "invalid theme \"%s\".", m_theme->c_str());
+        m_theme = "Sage";
+    }
 }
 
 void MapView::menu_item() {
     if(ImGui::BeginMenu("View")) {
-        ImGui::BeginDisabled(m_theme == nullptr);
+        ImGui::BeginDisabled(m_presets.find(m_theme) == m_presets.end());
+
         if(ImGui::MenuItem("Edit Theme")) {
             m_editing = true;            
         }
@@ -414,9 +418,9 @@ void MapView::menu_item() {
         ImGui::EndDisabled();
 
         if(ImGui::BeginMenu("Load Preset")) {
-            for(auto [name, preset] : m_presets) {
-                if(ImGui::MenuItem(name.c_str(), nullptr, m_theme == preset))
-                    m_theme = preset;
+            for(auto [name, _] : m_presets) {
+                if(ImGui::MenuItem(name.c_str(), nullptr, m_theme == name))
+                    m_theme = name;
             }
 
             ImGui::EndMenu();
@@ -430,18 +434,19 @@ void MapView::draw_ui(InputState& input) {
     if(!m_editing)
         return;
 
-    assert(m_theme != nullptr);
+    assert(m_presets.find(m_theme) != m_presets.end());
+    auto& theme = m_presets[m_theme];
 
     ImGui::Begin("Theme Editor", &m_editing);
 
-    ImGui::ColorEdit3("BACKGROUND", reinterpret_cast<float*>(&(m_theme->background())));
+    ImGui::ColorEdit3("BACKGROUND", reinterpret_cast<float*>(&(theme->background())));
 
     ImGui::Separator();
 
     for(size_t i = 0; i < MapTheme::N; i++) {
         auto class_ = Metadata::Classification(i);
 
-        ImGui::ColorEdit4(Metadata::classification_name(class_)->c_str(), reinterpret_cast<float*>(&(**m_theme)[class_]));
+        ImGui::ColorEdit4(Metadata::classification_name(class_)->c_str(), reinterpret_cast<float*>(&(**theme)[class_]));
     }
 
     ImGui::End();

@@ -22,9 +22,6 @@
 // Green Theme:
 // #define DEFAULT_CLEAR_COLOR glm::vec3(0.082,0.075,0.078)
 
-// Grayscale Theme:
-// #define DEFAULT_CLEAR_COLOR glm::vec3(0.0, 0.0, 0.0)
-
 class LoaderContext {
 public:
     LoaderContext(GLFWwindow* window)

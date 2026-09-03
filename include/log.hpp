@@ -1,6 +1,8 @@
 #pragma once
 
 #include "renderutil.hpp"
+#include "non_volatile.hpp"
+
 #include <chrono>
 #include <string>
 
@@ -57,7 +59,7 @@ public:
 private:
     bool m_auto_scroll = true;
     bool m_scroll_down = false;
-    bool m_show_timestamps = true;
+    non_volatile<bool, "console.show_timestamps"> m_show_timestamps{true};
 
     std::array<bool, 4> m_filter{true, true, true, true};
 

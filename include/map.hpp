@@ -16,6 +16,7 @@
 #include "inputstate.hpp"
 #include "renderutil.hpp"
 #include "maptools.hpp"
+#include "non_volatile.hpp"
 #include "way.hpp"
 #include "heightmap.hpp"
 
@@ -250,8 +251,8 @@ public:
 
     void load_presets();
 
-    inline std::shared_ptr<MapTheme> get_theme() const {
-        return m_theme;
+    inline std::shared_ptr<MapTheme> get_theme() {
+        return m_presets[m_theme];
     }
 
     virtual void menu_item() override;
@@ -266,7 +267,7 @@ public:
 private:
     bool m_editing;
 
-    std::shared_ptr<MapTheme> m_theme;
+    non_volatile<std::string, "settings.theme"> m_theme{"Sage"};
     std::unordered_map<std::string, std::shared_ptr<MapTheme>> m_presets;
 };
 

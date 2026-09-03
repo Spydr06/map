@@ -218,6 +218,9 @@ void Console::push_line(mlog::Level level, const std::string& line) {
 
     m_lines[m_front] = LogLine{level, time, line};
     m_front = (m_front + 1) % m_capacity;
+    if(m_front == m_back) {
+        m_back = (m_back + 1) % m_capacity;
+    }
 
     m_scroll_down = m_auto_scroll;
 }
