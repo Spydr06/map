@@ -49,6 +49,25 @@ std::optional<std::string> non_volatile_store::deserialize(const std::string& v)
     return v.substr(1, v.size() - 2);
 }
 
+template<>
+std::string non_volatile_store::serialize(const int& value) {
+    return std::format("{}", value);
+}
+
+template<>
+std::optional<int> non_volatile_store::deserialize(const std::string& v) {
+    int value{};
+
+    const char *end = v.data() + v.size();
+    auto [ptr, err] = std::from_chars(v.data(), end, value);
+    if(err != std::errc{} || ptr != end) {
+        mlog::logln(mlog::ERROR, "parser error: value \"%s\" is not an integer.", v.c_str());
+        return std::nullopt;
+    }
+
+    return value;
+}
+
 ini_store::ini_store(const std::filesystem::path& path)
     : m_path(path)
 {

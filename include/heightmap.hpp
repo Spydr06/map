@@ -91,10 +91,13 @@ public:
         if(!contains_pos(pos))
             return -1.f;
 
-        double x = (1.0 - (pos.y - m_start.y) / (m_end.y - m_start.y)) * m_width;
-        double y = (1.0 - (pos.x - m_start.x) / (m_end.x - m_start.x)) * m_height;
+        double fx = (pos.y - m_start.y) / (m_end.y - m_start.y);
+        double fy = (pos.x - m_start.x) / (m_end.x - m_start.x);
 
-        return m_pixels[static_cast<uint32_t>(y * m_width + x)];
+        size_t x = static_cast<size_t>((1.0 - fx) * (m_width - 1));
+        size_t y = static_cast<size_t>((1.0 - fy) * (m_height - 1));
+
+        return m_pixels.at(y * m_width + x);
     }
 private:
     GLuint m_texture;

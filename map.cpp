@@ -169,6 +169,10 @@ void Map::draw_ui(InputState& input) {
     auto [min, max] = get_minmax_coord();
     ImGui::Text("coordinate system: (%f, %f) to (%f, %f)", min.x, min.y, max.x, max.y);
 
+    if(ImGui::Button("Center Viewport")) {
+        context->center_viewport();
+    }
+
     ImGui::Separator();
 
     ImGui::Checkbox("Auto Priority", &m_auto_priority);
@@ -249,12 +253,17 @@ void MapLoader::menu_item() {
         if(ImGui::MenuItem("Tag Info [xml]")) {
             if(auto osm_path = file_dialog("xml")) {
                 mlog::logln(mlog::INFO, "Loading Tag-Info '%s'...", osm_path->c_str());
+
             }
         }
 
         if(ImGui::MenuItem("Heightmap [tif]")) {
-            if(auto osm_path = file_dialog("tif,tiff")) {
-                mlog::logln(mlog::INFO, "Loading Heightmap '%s'...", osm_path->c_str());
+            if(auto hm_path = file_dialog("tif,tiff")) {
+                mlog::logln(mlog::INFO, "Loading Heightmap '%s'...", hm_path->c_str());
+
+                auto heightmap = std::make_shared<Heightmap>(*hm_path);
+                heightmap->preprocess();
+                map->set_heightmap(heightmap);
             }
         }
 
@@ -343,16 +352,6 @@ const vec4 s_accent_3 = vec4(1.,0.922,0.906, 1.0);
 const vec4 s_primary = vec4(0.624,0.525,0.753, 1.0);
 const vec4 s_water = vec4(0.325,0.847,0.984, 1.0);
 const vec4 s_secundary = vec4(0.369,0.329,0.557, 1.0);
-const vec4 s_foliage = s_trans;
-*/
-
-// Grayscale Theme:
-/*const vec4 s_accent_1 = vec4(1.0, 1.0, 1.0, 1.0);
-const vec4 s_accent_2 = vec4(1.0, 1.0, 1.0, 1.0);
-const vec4 s_accent_3 = vec4(1.0, 1.0, 1.0, 1.0);
-const vec4 s_primary = vec4(1.0, 1.0, 1.0, 1.0);
-const vec4 s_water = vec4(1.0, 1.0, 1.0, 1.0);
-const vec4 s_secundary = vec4(1.0, 1.0, 1.0, 1.0);
 const vec4 s_foliage = s_trans;
 */
 

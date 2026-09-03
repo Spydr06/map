@@ -133,28 +133,34 @@ auto preprocess_data(const std::string& xml_path, std::shared_ptr<Map> map, Prog
     XML_SetElementHandler(parser, enter_element, leave_element);
 
     int ret = 0;
-    const auto buffer_size = 1024 * 1024;
+    constexpr auto buffer_size = 1024 * 1024;
+    std::vector<char> buffer(buffer_size);
 
-    while(!input.eof()) {
-        void* const buf = XML_GetBuffer(parser, buffer_size);
+    while(input) {
+        input.read(buffer.data(), buffer.size());
+
+        std::streamsize bytes_read = input.gcount();
+        if(bytes_read <= 0)
+            break;
+
+        void* const buf = XML_GetBuffer(parser, static_cast<int>(bytes_read));
         if(!buf) {
             mlog::logln(mlog::ERROR, "Could not allocate buffer of size %d", buffer_size);
             ret = 1;
             goto cleanup;
         }
+
+        std::memcpy(buf, buffer.data(), static_cast<size_t>(bytes_read));
     
+        auto pos = input.tellg();
         if(progress) {
-            progress->update(input.tellg() / 1024.0 / 1024.0);
+            progress->update(static_cast<double>(pos) / 1024.0 / 1024.0);
         }
         else {
-            mlog::log(mlog::INFO, "\r%zu MiB parsed", input.tellg() / 1024 / 1024);
+            mlog::log(mlog::INFO, "\r%ju MiB parsed", static_cast<uintmax_t>(pos) / 1024 / 1024);
         }
 
-        const auto bytes_read = input.readsome((char*) buf, buffer_size);
-        if(!bytes_read)
-            break;
-
-        if(XML_ParseBuffer(parser, bytes_read, input.eof()) == XML_STATUS_ERROR) {
+        if(XML_ParseBuffer(parser, static_cast<int>(bytes_read), input.eof()) == XML_STATUS_ERROR) {
             mlog::logln(mlog::ERROR, "Parse error at line %lu:\n%s", XML_GetCurrentLineNumber(parser),
                 XML_ErrorString(XML_GetErrorCode(parser)));
             ret = 1;

@@ -55,6 +55,8 @@ public:
 
     std::optional<std::unique_ptr<LoaderContext>> create_loader_context();
 
+    void center_viewport();
+    void center_viewport(const Map& map);
     void add_map(std::shared_ptr<Map> map);
 
     inline void add_element(std::shared_ptr<RenderElement> element) {

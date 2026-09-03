@@ -131,10 +131,11 @@ void parse_value(const std::string& value, std::string& tag, std::vector<std::st
         auto param_start = tag_end + 1;
         auto param_end = std::find(param_start, end, ']');
 
-        if(param_end != end) {
-            params.push_back(std::string(param_start, param_end));
-            tag_end = param_end + 1;
-        }
+        if(param_end == end)
+            break;
+
+        params.push_back(std::string(param_start, param_end));
+        tag_end = param_end + 1;
     }
 }
 

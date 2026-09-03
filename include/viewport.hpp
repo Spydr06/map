@@ -29,7 +29,7 @@ public:
     }
 
     inline void default_translation() {
-        m_translation = -m_min_coord;
+        m_translation = -m_min_coord - (m_max_coord - m_min_coord) / glm::vec2(2.0f, 2.0f);
     }
 
     inline auto& get_translation() {

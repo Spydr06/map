@@ -1,3 +1,4 @@
+#include <algorithm>
 #include <chrono>
 #include <cstdlib>
 #include <filesystem>
@@ -23,8 +24,6 @@
 #include <imgui.h>
 #include <backends/imgui_impl_glfw.h>
 #include <backends/imgui_impl_opengl3.h>
-
-constexpr glm::vec2 window_size = glm::vec2(1366, 768);
 
 std::unique_ptr<RenderContext> context = nullptr;
 
@@ -142,7 +141,10 @@ auto main(int argc, char** argv) -> int {
 
     glfwWindowHint(GLFW_SCALE_FRAMEBUFFER, GLFW_TRUE);
 
-    GLFWwindow* window = glfwCreateWindow(window_size.x, window_size.y, "Map", nullptr, nullptr);
+    static auto window_width = std::make_unique<non_volatile<int, "window.width">>(1366);
+    static auto window_height = std::make_unique<non_volatile<int, "window.height">>(768);
+    
+    GLFWwindow* window = glfwCreateWindow(*window_width, *window_height, "Map", nullptr, nullptr);
     if(!window) {
         mlog::logln(mlog::ERROR, "Error creating GLFW window");
         glfwTerminate();
@@ -191,7 +193,7 @@ auto main(int argc, char** argv) -> int {
     ImGui_ImplGlfw_InitForOpenGL(window, true);
     ImGui_ImplOpenGL3_Init("#version 450 core");
 
-    context = std::make_unique<RenderContext>(window, window_size);
+    context = std::make_unique<RenderContext>(window, glm::vec2(**window_width, **window_height));
 
     std::shared_ptr<Map> map = nullptr;
     if(osm_path) {
@@ -240,6 +242,7 @@ auto main(int argc, char** argv) -> int {
 
         auto& scale = context->get_viewport().get_zoom_factor();
         scale += scale * yoffset * 0.1;
+        scale = std::max(0.01f, scale);
     });
 
     glfwSetMouseButtonCallback(window, [](GLFWwindow*, int button, int action, [[maybe_unused]] int mods) {
@@ -278,6 +281,8 @@ auto main(int argc, char** argv) -> int {
     });
 
     glfwSetWindowSizeCallback(window, [](GLFWwindow*, int width, int height) {
+        *window_width = width;
+        *window_height = height;
         context->get_input_state().window_size = glm::vec2(width, height);
     });
 
