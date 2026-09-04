@@ -77,7 +77,27 @@ This is free software; see the source for copying conditions.
 There is NO warranty.
 
 Source code: https://github.com/spydr06/map
-Version: )" VERSION_STRING "\n";
+No AI used in the creation of this software.
+
+Version: )" VERSION_STRING R"(
+
+Thirdparty Libraries:
+
+- cairo: https://cairographics.org/download
+- glew: https://glew.sourceforge.ne
+- glfw: https://www.glfw.org
+- glm: https://github.com/g-truc/glm
+- imgui: https://github.com/ocornut/imgui
+- inipp: https://github.com/mcmtroffaes/inipp
+- libcurl: https://curl.se/libcurl
+- libexpat: https://libexpat.github.io
+- libgeotiff: https://github.com/OSGeo/libgeotiff
+- librsvg: https://gitlab.gnome.org/GNOME/librsvg
+- nativefiledialog: https://github.com/mlabbe/nativefiledialog
+and depending libraries.
+
+These projects are not affiliated with me in any way.
+)";
 
     ImGui::Begin("About", &m_about_showing);
 

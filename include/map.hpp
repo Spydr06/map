@@ -160,6 +160,14 @@ public:
         return m_source;
     }
 
+    inline BVH::iterator begin() {
+        return m_bvh->begin();
+    }
+
+    inline BVH::iterator end() {
+        return m_bvh->end();
+    }
+
 private:
     std::string m_source;
     

@@ -47,8 +47,8 @@ public:
     virtual void begin_render(Heightmap& heightmap, Viewport& viewport, InputState& input) override;
     virtual void draw_ui(Heightmap& heightmap) override;
 private:
-    float m_brightness;
-    float m_delta;
+    non_volatile<float, "heightmap.gradient_brightness"> m_brightness;
+    non_volatile<float, "heightmap.gradient_delta"> m_delta;
 }; 
 
 class HeightmapContourMode : public HeightmapRenderMode {
@@ -61,19 +61,22 @@ public:
     virtual void begin_render(Heightmap& heightmap, Viewport& viewport, InputState& input) override;
     virtual void draw_ui(Heightmap& heightmap) override;
 private:
-    glm::vec4 m_color;
-    float m_epsilon;
-    float m_spacing;
+    non_volatile<glm::vec4, "heightmap.contour_color"> m_color;
+    non_volatile<float, "heightmap.contour_epsilon"> m_epsilon;
+    non_volatile<float, "heightmap.contour_spacing"> m_spacing;
 };
 
 class HeightmapTile {
 public:
     HeightmapTile(std::vector<float> pixels, uint32_t width, uint32_t height, double min_lon, double min_lat, double max_lon, double max_lat)
-        : m_width(width), m_height(height), m_pixels(pixels),
-          m_start(map_project(glm::vec2(min_lon, min_lat))), 
-          m_end(map_project(glm::vec2(max_lon, max_lat)))
+        : m_width(width), m_height(height), m_pixels(pixels)
     {
-        mlog::logln(mlog::INFO, "mapped: [%f, %f -> %f, %f]", m_start.x, m_start.y, m_end.x, m_end.y);
+        m_min_min = map_project(glm::vec2(min_lon, min_lat));
+        m_max_min = map_project(glm::vec2(max_lon, min_lat));
+        m_min_max = map_project(glm::vec2(min_lon, max_lat));
+        m_max_max = map_project(glm::vec2(max_lon, max_lat));
+
+        //mlog::logln(mlog::INFO, "mapped: [%f, %f -> %f, %f]", m_start.x, m_start.y, m_end.x, m_end.y);
 
         create_texture();
         create_buffers();
@@ -84,28 +87,32 @@ public:
     void draw_buffers();
 
     bool contains_pos(glm::vec2 const& pos) const {
-        return pos.x >= m_start.x && pos.x < m_end.x && pos.y <= m_start.y && pos.y > m_end.y;
+        //return pos.x >= m_start.x && pos.x < m_end.x && pos.y <= m_start.y && pos.y > m_end.y;
+        return false;
     }
 
     float height_at_pos(glm::vec2 const& pos) const {
         if(!contains_pos(pos))
             return -1.f;
 
-        double fx = (pos.y - m_start.y) / (m_end.y - m_start.y);
-        double fy = (pos.x - m_start.x) / (m_end.x - m_start.x);
+        /*double fy = (pos.y - m_start.y) / (m_end.y - m_start.y);
+        double fx = (pos.x - m_start.x) / (m_end.x - m_start.x);
 
         size_t x = static_cast<size_t>((1.0 - fx) * (m_width - 1));
         size_t y = static_cast<size_t>((1.0 - fy) * (m_height - 1));
 
-        return m_pixels.at(y * m_width + x);
+        return m_pixels.at(y * m_width + x);*/
+
+        return -1.f;
     }
-private:
+
     GLuint m_texture;
+private:
     GLuint m_vao = 0, m_vbo = 0;
     uint32_t m_width, m_height;
 
     std::vector<float> m_pixels;
-    glm::vec2 m_start, m_end;
+    glm::vec2 m_min_min, m_min_max, m_max_min, m_max_max;
 };
 
 class Heightmap : public RenderElement {
@@ -142,17 +149,6 @@ public:
         return std::pair(m_info.min_height, m_info.max_height);
     }
 
-private:
-    std::string m_tif_path;
-    TIFF *m_tif;
-    GTIF *m_gtif;
-
-    std::map<uint32_t, std::shared_ptr<HeightmapTile>> m_tiles;
-    std::map<uint32_t, std::shared_ptr<ContourTile>> m_contours;
-
-    std::map<std::string, std::shared_ptr<HeightmapRenderMode>> m_modes;
-    std::pair<std::string, std::shared_ptr<HeightmapRenderMode>> m_current_mode;
-
     struct {
         uint32_t width, height;
         uint32_t tile_width, tile_height;
@@ -162,6 +158,17 @@ private:
         double min_lat, max_lat;
         float min_height, max_height;
     } m_info;
+
+private:
+    std::string m_tif_path;
+    TIFF *m_tif;
+    GTIF *m_gtif;
+
+    std::map<uint32_t, std::shared_ptr<HeightmapTile>> m_tiles;
+    std::map<uint32_t, std::shared_ptr<ContourTile>> m_contours;
+
+    std::map<std::string, std::shared_ptr<HeightmapRenderMode>> m_modes;
+    non_volatile<std::string, "heightmap.mode"> m_current_mode;
 
     GLuint m_tile_ebo = 0;
 };

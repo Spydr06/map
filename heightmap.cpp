@@ -6,6 +6,7 @@
 #include "renderutil.hpp"
 #include "viewport.hpp"
 
+#include <array>
 #include <fstream>
 
 #include <geokeys.h>
@@ -24,13 +25,16 @@
 static constexpr GLuint indices[] = { 0, 1, 2, 2, 1, 3 };
 
 Heightmap::Heightmap(std::string path)
-        : m_tif_path(path), m_tif{}, m_modes{}
+        : m_tif_path(path), m_tif{}, m_modes{}, m_current_mode{"Altitude"}
 {
     m_modes["Altitude"] = std::make_shared<HeightmapAltitudeMode>();
     m_modes["Gradient"] = std::make_shared<HeightmapGradientMode>();
     m_modes["Contours"] = std::make_shared<HeightmapContourMode>();
 
-    m_current_mode = std::pair("Altitude", m_modes["Altitude"]);
+    if(m_modes.find(m_current_mode) == m_modes.end()) {
+        mlog::logln(mlog::ERROR, "Unknown heightmap mode \"%s\".", m_current_mode->c_str());
+        m_current_mode = "Altitude";
+    }
 
     create_buffers();
 }
@@ -119,8 +123,8 @@ int Heightmap::preprocess() {
 }
 
 std::optional<std::shared_ptr<HeightmapTile>> Heightmap::get_tile(uint32_t x, uint32_t y) {
-    if(x > m_info.width / m_info.tile_width
-        || y > m_info.height / m_info.tile_height)
+    if(x >= m_info.width / m_info.tile_width
+        || y >= m_info.height / m_info.tile_height)
         return {};
 
     auto tile = m_tiles.find(get_tile_index(x, y));
@@ -150,15 +154,35 @@ std::optional<std::shared_ptr<HeightmapTile>> Heightmap::get_tile(uint32_t x, ui
 }
 
 void Heightmap::draw_scene(Viewport& viewport, InputState& input) {
-    m_current_mode.second->begin_render(*this, viewport, input);
+    auto& mode = m_modes[m_current_mode];
+    mode->begin_render(*this, viewport, input);
 
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_tile_ebo);
 
-    for(uint32_t y = 0; y < m_info.height / m_info.tile_height; y++) {
+    for(uint32_t y = 0; y <= m_info.height / m_info.tile_height; y++) {
         for(uint32_t x = 0; x < m_info.width / m_info.tile_width; x++) {
-            if(auto tile = get_tile(x, y)) {
-                (*tile)->draw_buffers();
+            auto current = get_tile(x, y);
+            if(!current)
+                continue;
+
+            glm::ivec2 area[9] = {
+                {-1, -1}, { 0, -1}, { 1, -1},
+                {-1,  0}, { 0,  0}, { 1,  0},
+                {-1,  1}, { 0,  1}, { 1,  1}
+            };
+
+            for(int i = 0; i < 9; ++i) {
+                if(static_cast<int32_t>(x) + area[i].x < 0
+                    || static_cast<int32_t>(y) + area[i].y < 0)
+                    continue;
+
+                if(auto tile = get_tile(x + area[i].x, y + area[i].y))
+                    glBindTextureUnit(i, (*tile)->m_texture);
+                else
+                    glBindTextureUnit(i, 0);
             }
+
+            (*current)->draw_buffers();
         }
     }
 }
@@ -176,12 +200,12 @@ void Heightmap::draw_ui(InputState& input) {
 
     ImGui::Separator();
 
-    if(ImGui::BeginCombo("Shader", m_current_mode.first.c_str())) {
+    if(ImGui::BeginCombo("Shader", m_current_mode->c_str())) {
         for(auto& [name, mode] : m_modes) {
-            bool is_selected = (m_current_mode.second == mode);
+            bool is_selected = m_current_mode == name;
 
             if(ImGui::Selectable(name.c_str(), is_selected))
-                m_current_mode = std::pair(name, mode);
+                m_current_mode = name;
 
             if(is_selected)
                 ImGui::SetItemDefaultFocus();
@@ -190,7 +214,8 @@ void Heightmap::draw_ui(InputState& input) {
         ImGui::EndCombo();
     }
 
-    m_current_mode.second->draw_ui(*this);
+    auto& mode = m_modes[m_current_mode];
+    mode->draw_ui(*this);
 
     ImGui::End();
 }
@@ -213,8 +238,8 @@ void HeightmapTile::create_texture() {
 
     glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, std::min(max_anisotropy, value));
 
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 }
 
 void HeightmapTile::create_buffers() {
@@ -222,10 +247,10 @@ void HeightmapTile::create_buffers() {
         glm::vec2 vertex;
         glm::vec2 tex_coord;
     } vertices[] = {
-        { glm::vec2(m_start),            glm::vec2(0, 0) },
-        { glm::vec2(m_start.x, m_end.y), glm::vec2(0, 1) },
-        { glm::vec2(m_end.x, m_start.y), glm::vec2(1, 0) },
-        { glm::vec2(m_end),              glm::vec2(1, 1) }
+        { m_min_min, glm::vec2(0, 0) },
+        { m_min_max, glm::vec2(0, 1) },
+        { m_max_min, glm::vec2(1, 0) },
+        { m_max_max, glm::vec2(1, 1) }
     };
 
     glGenVertexArrays(1, &m_vao);
@@ -248,8 +273,8 @@ void HeightmapTile::create_buffers() {
 }
 
 void HeightmapTile::draw_buffers() {
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, m_texture);
+    // glActiveTexture(GL_TEXTURE0);
+    // glBindTexture(GL_TEXTURE_2D, m_texture);
     glBindVertexArray(m_vao);
 
     glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, indices);
@@ -270,17 +295,28 @@ HeightmapRenderMode::HeightmapRenderMode(const std::string& vertex_shader_path, 
     }
 }
 
-void HeightmapGradientMode::begin_render(Heightmap&, Viewport& viewport, InputState& input) {
+void HeightmapGradientMode::begin_render(Heightmap& heightmap, Viewport& viewport, InputState& input) {
     m_shader->use();
     viewport.upload_uniforms(*m_shader, input.window_size);
-    m_shader->upload_uniform("u_Texture", 0u);
+
+    auto tiles = std::array<GLuint, 9>{0,1,2,3,4,5,6,7,8};
+    m_shader->upload_uniform("u_Tiles", tiles);
+    m_shader->upload_uniform("u_TileSize", glm::ivec2(heightmap.m_info.tile_width, heightmap.m_info.tile_height));
+
     m_shader->upload_uniform("u_Delta", m_delta);
     m_shader->upload_uniform("u_Brightness", m_brightness);
 }
 
 void HeightmapGradientMode::draw_ui(Heightmap&) {
-    ImGui::SliderFloat("Gradient Delta", &m_delta, 0.0, 1.0);
-    ImGui::SliderFloat("Brightness", &m_brightness, 0.0, 1.0);
+    float delta = m_delta;
+    ImGui::SliderFloat("Gradient Delta", &delta, 0.0, 1.0);
+    if(delta != m_delta)
+        m_delta = delta;
+
+    float brightness = m_brightness;
+    ImGui::SliderFloat("Brightness", &brightness, 0.0, 1.0);
+    if(brightness != m_brightness)
+        m_brightness = brightness;
 }
 
 void HeightmapAltitudeMode::begin_render(Heightmap& heightmap, Viewport& viewport, InputState& input) {
@@ -288,7 +324,11 @@ void HeightmapAltitudeMode::begin_render(Heightmap& heightmap, Viewport& viewpor
 
     m_shader->use();
     viewport.upload_uniforms(*m_shader, input.window_size);
-    m_shader->upload_uniform("u_Texture", 0u);
+
+    auto tiles = std::array<GLuint, 9>{0,1,2,3,4,5,6,7,8};
+    m_shader->upload_uniform("u_Tiles", tiles);
+    m_shader->upload_uniform("u_TileSize", glm::ivec2(heightmap.m_info.tile_width, heightmap.m_info.tile_height));
+
     m_shader->upload_uniform("u_HeightRange", glm::vec2(min_height, max_height));
 }
 
@@ -297,7 +337,11 @@ void HeightmapContourMode::begin_render(Heightmap& heightmap, Viewport& viewport
 
     m_shader->use();
     viewport.upload_uniforms(*m_shader, input.window_size);
-    m_shader->upload_uniform("u_Texture", 0u);
+
+    auto tiles = std::array<GLuint, 9>{0,1,2,3,4,5,6,7,8};
+    m_shader->upload_uniform("u_Tiles", tiles);
+    m_shader->upload_uniform("u_TileSize", glm::ivec2(heightmap.m_info.tile_width, heightmap.m_info.tile_height));
+
     m_shader->upload_uniform("u_Epsilon", m_epsilon);
     m_shader->upload_uniform("u_Spacing", m_spacing);
     m_shader->upload_uniform("u_HeightRange", glm::vec2(min_height, max_height));
@@ -306,13 +350,19 @@ void HeightmapContourMode::begin_render(Heightmap& heightmap, Viewport& viewport
 }
 
 void HeightmapContourMode::draw_ui(Heightmap& heightmap) {
-    ImGui::SliderFloat("Spacing [m]", &m_spacing, 1.0, 500);
-    ImGui::SliderFloat("Epsilon", &m_epsilon, 0.0, 5.0);
+    float spacing = m_spacing;
+    ImGui::SliderFloat("Spacing [m]", &spacing, 1.0, 500);
+    if(spacing != m_spacing)
+        m_spacing = spacing;
 
-    if(ImGui::TreeNode("Color")) {
-        ImGui::ColorEdit4("", reinterpret_cast<float*>(&m_color));
-        
-        ImGui::TreePop();
-    }
+    float epsilon = m_epsilon;
+    ImGui::SliderFloat("Epsilon", &epsilon, 0.0, 5.0);
+    if(epsilon != m_epsilon)
+        m_epsilon = epsilon;
+
+    glm::vec4 color = m_color;
+    ImGui::ColorEdit4("Color", reinterpret_cast<float*>(&color));
+    if(color != m_color)
+        m_color = color;
 }
 

@@ -11,6 +11,7 @@
 #define RESOLUTION_FHD glm::ivec2(1920, 1080)
 #define RESOLUTION_4K glm::ivec2(3840, 2160)
 #define RESOLUTION_8K glm::ivec2(7680, 4320)
+#define RESOLUTION_16K glm::ivec2(15360, 8640)
 
 class Screenshot : public RenderElement, public MapTool {
 public:

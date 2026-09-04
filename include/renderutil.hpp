@@ -13,6 +13,7 @@
 #include <glm/vec3.hpp>
 #include <glm/vec4.hpp>
 
+#include "glm/ext/vector_int2.hpp"
 #include "inputstate.hpp"
 #include "viewport.hpp"
 
@@ -97,6 +98,14 @@ public:
         glUniform1i(glGetUniformLocation(m_id, uniform.c_str()), value);
     }
 
+    template<std::size_t N>
+    inline void upload_uniform(const std::string& uniform, std::array<GLuint, N>& value) const {
+        auto location = static_cast<std::size_t>(glGetUniformLocation(m_id, uniform.c_str()));
+        assert(location + N <= GL_MAX_UNIFORM_LOCATIONS);
+
+        glUniform1iv(location, static_cast<GLsizei>(N), reinterpret_cast<GLint*>(value.data()));
+    }
+
     inline void upload_uniform(const std::string& uniform, glm::vec2 value) const {
         glUniform2f(glGetUniformLocation(m_id, uniform.c_str()), value.x, value.y);
     }
@@ -115,6 +124,10 @@ public:
         assert(location + N <= GL_MAX_UNIFORM_LOCATIONS);
 
         glUniform4fv(location, static_cast<GLsizei>(N), reinterpret_cast<float*>(value.data()));
+    }
+
+    inline void upload_uniform(const std::string& uniform, glm::ivec2 value) const {
+        glUniform2i(glGetUniformLocation(m_id, uniform.c_str()), value.x, value.y);
     }
 
 private:

@@ -135,3 +135,26 @@ std::pair<float, std::shared_ptr<Way>> BVH::get_nearest_way(glm::vec2 coords, Dr
     return std::make_pair(min_dist, way_ptr);
 }
 
+void BVH::iterator::advance() {
+    while(!m_stack.empty()) {
+        auto& frame = m_stack.back();
+
+        if(frame.priority < __DRAW_PRIO_LAST) {
+            if(frame.index < frame.bvh->m_ways[frame.priority].size())
+                return;
+
+            frame.priority++;
+            frame.index = 0;
+            continue;
+        }
+
+        BVH* bvh = frame.bvh;
+        m_stack.pop_back();
+
+        if(bvh->m_children.second)
+            m_stack.push_back({bvh->m_children.second.get(), 0, 0});
+        if(bvh->m_children.first)
+            m_stack.push_back({bvh->m_children.first.get(), 0, 0});
+    }
+}
+

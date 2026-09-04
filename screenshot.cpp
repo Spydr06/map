@@ -23,6 +23,7 @@ static const std::map<std::string, glm::ivec2> resolution_presets = {
     { "FHD", RESOLUTION_FHD },
     { "4K", RESOLUTION_4K },
     { "8K", RESOLUTION_8K },
+    { "16K", RESOLUTION_16K },
 };
 
 void Screenshot::draw_ui(InputState &input) {

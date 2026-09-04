@@ -64,7 +64,16 @@ void Inspector::draw_ui(Map& map, InputState& input) {
                 ImGui::Image((void*)(uintptr_t) tag->m_texture_id, size);
             }
         }
-    }
+    } 
+
+    /* for(const auto& way : map) {
+        auto& tags = way->get_tags();
+        if(tags.find("name") != tags.end()) {
+            if(ImGui::CollapsingHeader(std::format("{} {}", way->get_id(), tags["name"]).c_str(), ImGuiTreeNodeFlags_None)) {
+
+            }
+        }
+    } */
 
     ImGui::End();
 }
