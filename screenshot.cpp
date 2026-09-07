@@ -24,6 +24,8 @@ static const std::map<std::string, glm::ivec2> resolution_presets = {
     { "4K", RESOLUTION_4K },
     { "8K", RESOLUTION_8K },
     { "16K", RESOLUTION_16K },
+    { "A2 - 300dpi", glm::ivec2(7016, 4961) },
+    { "A2 - 600dpi", glm::ivec2(14043, 9933) }
 };
 
 void Screenshot::draw_ui(InputState &input) {
@@ -75,12 +77,34 @@ void Screenshot::draw_ui(Map& map, InputState& input) {
     }
 }
 
+void store_image(std::unique_ptr<LoaderContext> context, std::string filepath, glm::ivec2 resolution, GLuint texture) {
+    context->make_current();
+
+    auto data = std::make_unique<uint8_t[]>(resolution.x * resolution.y * sizeof(uint8_t) * 4);
+    glBindTexture(GL_TEXTURE_2D, texture);
+
+    glPixelStorei(GL_PACK_ALIGNMENT, 1);
+    glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, GL_UNSIGNED_BYTE, data.get());
+
+    stbi_flip_vertically_on_write(true);
+
+    if(!stbi_write_png(filepath.c_str(), resolution.x, resolution.y, 4, data.get(), 0)) {
+        mlog::logln(mlog::ERROR, "failed writing image to %s: %s", filepath.c_str(), strerror(errno));
+    }
+
+    mlog::logln(mlog::INFO, "saved screenshot to \"%s\".", filepath.c_str());
+
+    glDeleteTextures(1, &texture);
+
+    context->finalize();
+}
+
 void Screenshot::take_screenshot(RenderContext& context) {
     m_pending = false;
 
     mlog::logln(mlog::DEBUG, "start creating screenshot...\n");
 
-    auto filepath = m_directory / std::format("map-{}.jpg", std::time(NULL));
+    auto filepath = m_directory / std::format("map-{}.png", std::time(NULL));
 
     // target texture
     GLuint target = 0;
@@ -141,29 +165,23 @@ void Screenshot::take_screenshot(RenderContext& context) {
     float scale_before = viewport.get_scale_factor();
     viewport.get_scale_factor() = m_scale;
 
+    auto size_before = context.get_input_state().window_size;
+    context.get_input_state().window_size = m_resolution;
+
     context.draw_scene();
 
     viewport.get_scale_factor() = scale_before;
+    context.get_input_state().window_size = size_before;
 
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
-    data = std::make_unique<uint8_t[]>(m_resolution.x * m_resolution.y * sizeof(uint8_t) * 4);
-    glBindTexture(GL_TEXTURE_2D, target);
-
-    glPixelStorei(GL_PACK_ALIGNMENT, 1);
-    glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, GL_UNSIGNED_BYTE, data.get());
-
-    stbi_flip_vertically_on_write(true);
-    if(!stbi_write_jpg(filepath.c_str(), m_resolution.x, m_resolution.y, 4, data.get(), 100)) {
-        mlog::logln(mlog::ERROR, "failed writing image to %s: %s", filepath.c_str(), strerror(errno));
-        goto cleanup;
-    }
-
-    mlog::logln(mlog::INFO, "saved screenshot to \"%s\".", filepath.c_str());
-
-cleanup:
+    if(auto loader_context = context.create_loader_context())
+        std::async(&store_image, std::move(*loader_context), filepath, m_resolution, target);
+    else
+        glDeleteTextures(1, &target);
+    
     glDeleteFramebuffers(1, &fbo);
     glDeleteRenderbuffers(1, &rbo);
-    glDeleteTextures(1, &target);
 }
+
 

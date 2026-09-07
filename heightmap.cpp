@@ -139,7 +139,7 @@ std::optional<std::shared_ptr<HeightmapTile>> Heightmap::get_tile(uint32_t x, ui
 
     mlog::logln(mlog::INFO, "generating heightmap tile (%d, %d) [%f, %f -> %f, %f]", x, y, min_lon, min_lat, max_lon, max_lat);
 
-    std::vector<float> pixels(TIFFTileSize(m_tif) / sizeof(float));
+    std::vector<float> pixels(m_info.tile_width * m_info.tile_height);
     TIFFReadTile(m_tif, reinterpret_cast<void*>(pixels.data()), x * m_info.tile_width, y * m_info.tile_height, 0, 0);
 
     auto [min_height, max_height] = std::minmax_element(pixels.begin(), pixels.end());
@@ -159,7 +159,7 @@ void Heightmap::draw_scene(Viewport& viewport, InputState& input) {
 
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_tile_ebo);
 
-    for(uint32_t y = 0; y <= m_info.height / m_info.tile_height; y++) {
+    for(uint32_t y = 0; y < m_info.height / m_info.tile_height; y++) {
         for(uint32_t x = 0; x < m_info.width / m_info.tile_width; x++) {
             auto current = get_tile(x, y);
             if(!current)
@@ -177,7 +177,7 @@ void Heightmap::draw_scene(Viewport& viewport, InputState& input) {
                     continue;
 
                 if(auto tile = get_tile(x + area[i].x, y + area[i].y))
-                    glBindTextureUnit(i, (*tile)->m_texture);
+                    glBindTextureUnit(i, (*tile)->texture());
                 else
                     glBindTextureUnit(i, 0);
             }
@@ -190,13 +190,18 @@ void Heightmap::draw_scene(Viewport& viewport, InputState& input) {
 void Heightmap::draw_ui(InputState& input) {
     ImGui::Begin("Heightmap");
 
-    ImGui::Text("Height min: %f, max: %f Meters", m_info.min_height, m_info.max_height);
+    ImGui::Text("Minimum altitude: %f [m]", m_info.min_height);
+    ImGui::Text("Maximum Altitude: %f [m]", m_info.max_height);
 
     glm::vec2 cursor = input.mapped_cursor_pos;
-    if(auto tile = get_tile_at_position(cursor))
-        ImGui::Text("Height at (%f, %f): %f Meters", cursor.x, cursor.y, (*tile)->height_at_pos(cursor));
+
+    ImGui::Text("Altitude at (%f, %f):", cursor.x, cursor.y);
+    ImGui::SameLine();
+
+    if(auto altitude = altitude_at_position(cursor))
+        ImGui::Text("%f [m]", *altitude);
     else
-        ImGui::Text("Height at (%f, %f): ---", cursor.x, cursor.y);
+        ImGui::Text("---");
 
     ImGui::Separator();
 
@@ -217,11 +222,119 @@ void Heightmap::draw_ui(InputState& input) {
     auto& mode = m_modes[m_current_mode];
     mode->draw_ui(*this);
 
+    ImGui::Separator();
+
+    if(ImGui::Button("Close Heightmap"))
+        m_remove = true;
+
     ImGui::End();
 }
 
+void Heightmap::on_attach(RenderContext& context) {
+    if(!context.get_element<Map>()) {
+        context.center_viewport(*this);
+    }
+}
+
+std::optional<std::shared_ptr<HeightmapTile>> Heightmap::tile_at_position(const glm::vec2& pos) const {
+    for(auto it = m_tiles.begin(); it != m_tiles.end(); it++) {
+        if(it->second->contains_position(pos))
+            return it->second;
+    }
+
+    return std::nullopt;
+}
+
+std::optional<float> Heightmap::altitude_at_position(const glm::vec2& pos) const {
+    return tile_at_position(pos)
+        .and_then([&](std::shared_ptr<HeightmapTile> tile) { return tile->altitude_at_position(pos); });
+}
+
+std::vector<float> Heightmap::altitude_graph(const Way& way) const {
+    std::vector<float> graph;
+    graph.reserve(way.get_nodes().size());
+
+    for(const auto& node : way.get_nodes()) {
+        if(auto altitude = altitude_at_position(node.m_coord)) {
+            graph.push_back(*altitude);
+        }
+    }
+
+    return graph;
+}
+
+HeightmapTile::HeightmapTile(std::vector<float> pixels, uint32_t width, uint32_t height, double min_lon, double min_lat, double max_lon, double max_lat)
+    : m_width(width), m_height(height), m_pixels(pixels)
+{
+    m_min_min = map_project(glm::vec2(min_lon, min_lat));
+    m_max_min = map_project(glm::vec2(max_lon, min_lat));
+    m_min_max = map_project(glm::vec2(min_lon, max_lat));
+    m_max_max = map_project(glm::vec2(max_lon, max_lat));
+
+    create_texture();
+    create_buffers();
+}
+
+HeightmapTile::~HeightmapTile() {
+    glDeleteVertexArrays(1, &m_vao);
+    glDeleteBuffers(1, &m_vbo);
+    glDeleteTextures(1, &m_texture);
+}
+
+bool HeightmapTile::contains_position(const glm::vec2& pos) const {
+    return is_point_in_triangle(pos, m_min_min, m_max_min, m_max_max)
+        || is_point_in_triangle(pos, m_min_min, m_max_max, m_min_max);
+}
+
+std::optional<float> HeightmapTile::altitude_at_position(const glm::vec2& pos) const {
+    glm::vec2 uv;
+
+    if(is_point_in_triangle(pos, m_min_min, m_max_min, m_max_max)) {
+        const glm::vec2 a = m_max_min - m_min_min;
+        const glm::vec2 b = m_max_max - m_min_min;
+        const glm::vec2 p = pos - m_min_min;
+
+        const float denom = cross_product_z(a, b);
+        if(std::abs(denom) < 1e-8f)
+            return std::nullopt;
+
+        uv = glm::vec2(
+            cross_product_z(p, b) / denom,
+            cross_product_z(a, p) / denom
+        );
+
+        uv.x += uv.y;
+    }
+    else if(is_point_in_triangle(pos, m_min_min, m_max_max, m_min_max)) {
+        const glm::vec2 a = m_max_max - m_min_min;
+        const glm::vec2 b = m_min_max - m_min_min;
+        const glm::vec2 p = pos - m_min_min;
+
+        const float denom = cross_product_z(a, b);
+        if(std::abs(denom) < 1e-8f)
+            return std::nullopt;
+
+        uv = glm::vec2(
+            cross_product_z(p, b) / denom,
+            cross_product_z(a, p) / denom
+        );
+
+        uv.y += uv.x;
+    }
+    else {
+        return std::nullopt;
+    }
+
+    uv = glm::clamp(uv, 0.0f, 1.0f);
+
+    const size_t x = static_cast<size_t>(uv.x * static_cast<float>(m_width - 1));
+    const size_t y = static_cast<size_t>(uv.y * static_cast<float>(m_height - 1));
+
+    return m_pixels.at(y * m_width + x);
+}
+
 void HeightmapTile::create_texture() {
-    mlog::logln(mlog::INFO, "tile %d x %d, %zu", m_width, m_height, m_pixels.size());
+    // mlog::logln(mlog::INFO, "tile %d x %d, %zu", m_width, m_height, m_pixels.size());
     glGenTextures(1, &m_texture);
     assert(m_texture != 0);
 
@@ -232,11 +345,11 @@ void HeightmapTile::create_texture() {
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 
-    GLfloat value, max_anisotropy = 8.0f;
+    /*GLfloat value, max_anisotropy = 8.0f;
     glGetFloatv(GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, &value);
-    mlog::logln(mlog::INFO, "anisotropy max: %f", value);
+    // mlog::logln(mlog::INFO, "anisotropy max: %f", value);
 
-    glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, std::min(max_anisotropy, value));
+    glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, std::min(max_anisotropy, value));*/
 
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
@@ -344,21 +457,38 @@ void HeightmapContourMode::begin_render(Heightmap& heightmap, Viewport& viewport
 
     m_shader->upload_uniform("u_Epsilon", m_epsilon);
     m_shader->upload_uniform("u_Spacing", m_spacing);
+    m_shader->upload_uniform("u_HlFrequency", m_hl_frequency);
+    m_shader->upload_uniform("u_HlMultiply", m_hl_multiply);
     m_shader->upload_uniform("u_HeightRange", glm::vec2(min_height, max_height));
     m_shader->upload_uniform("u_Color", m_color);
     m_shader->upload_uniform("u_BackgroundColor", context->get_clear_color());
+    m_shader->upload_uniform("u_ScaleFactor", viewport.get_scale_factor());
 }
 
-void HeightmapContourMode::draw_ui(Heightmap& heightmap) {
+void HeightmapContourMode::draw_ui(Heightmap&) {
     float spacing = m_spacing;
-    ImGui::SliderFloat("Spacing [m]", &spacing, 1.0, 500);
+    ImGui::DragFloat("Spacing [m]", &spacing, 1.0f, 1.0f, 1000.0f);
     if(spacing != m_spacing)
         m_spacing = spacing;
 
     float epsilon = m_epsilon;
-    ImGui::SliderFloat("Epsilon", &epsilon, 0.0, 5.0);
+    ImGui::SliderFloat("Epsilon", &epsilon, 0.0f, 16.0f);
     if(epsilon != m_epsilon)
         m_epsilon = epsilon;
+
+    int major_frequency = m_hl_frequency;
+    ImGui::SliderInt("Hightlight", &major_frequency, 0, 25, major_frequency <= 0 ? "off" : "every %d lines");
+    if(major_frequency != m_hl_frequency)
+        m_hl_frequency = major_frequency;
+
+    ImGui::BeginDisabled(m_hl_frequency <= 0);
+
+    float hl_multiply = m_hl_multiply;
+    ImGui::SliderFloat("Highlight Mult.", &hl_multiply, 1.0f, 5.0f);
+    if(hl_multiply != m_hl_multiply)
+        m_hl_multiply = hl_multiply;
+
+    ImGui::EndDisabled();
 
     glm::vec4 color = m_color;
     ImGui::ColorEdit4("Color", reinterpret_cast<float*>(&color));

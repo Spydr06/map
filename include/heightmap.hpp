@@ -12,6 +12,7 @@
 #include <glm/vec4.hpp>
 
 #include "log.hpp"
+#include "way.hpp"
 
 #define DEFAULT_PIXELS_PER_METER 30
 
@@ -41,7 +42,7 @@ class HeightmapGradientMode : public HeightmapRenderMode {
 public:
     HeightmapGradientMode()
         : HeightmapRenderMode("./shaders/gradient_vertex.glsl", "./shaders/gradient_fragment.glsl"),
-          m_brightness(0.1), m_delta(0.01)
+          m_brightness(0.1f), m_delta(0.01f)
     {}
 
     virtual void begin_render(Heightmap& heightmap, Viewport& viewport, InputState& input) override;
@@ -55,7 +56,7 @@ class HeightmapContourMode : public HeightmapRenderMode {
 public:
     HeightmapContourMode()
         : HeightmapRenderMode("./shaders/contour_vertex.glsl", "./shaders/contour_fragment.glsl"),
-          m_color(1.0), m_epsilon(0.1), m_spacing(50.0)
+          m_color(1.0f), m_epsilon(0.1f), m_spacing(50.0f), m_hl_frequency(5), m_hl_multiply(1.6f)
     {}
 
     virtual void begin_render(Heightmap& heightmap, Viewport& viewport, InputState& input) override;
@@ -64,58 +65,37 @@ private:
     non_volatile<glm::vec4, "heightmap.contour_color"> m_color;
     non_volatile<float, "heightmap.contour_epsilon"> m_epsilon;
     non_volatile<float, "heightmap.contour_spacing"> m_spacing;
+    non_volatile<int, "heightmap.contour_hl_frequency"> m_hl_frequency;
+    non_volatile<float, "heightmap.contour_hl_multiply"> m_hl_multiply;
 };
 
 class HeightmapTile {
 public:
-    HeightmapTile(std::vector<float> pixels, uint32_t width, uint32_t height, double min_lon, double min_lat, double max_lon, double max_lat)
-        : m_width(width), m_height(height), m_pixels(pixels)
-    {
-        m_min_min = map_project(glm::vec2(min_lon, min_lat));
-        m_max_min = map_project(glm::vec2(max_lon, min_lat));
-        m_min_max = map_project(glm::vec2(min_lon, max_lat));
-        m_max_max = map_project(glm::vec2(max_lon, max_lat));
-
-        //mlog::logln(mlog::INFO, "mapped: [%f, %f -> %f, %f]", m_start.x, m_start.y, m_end.x, m_end.y);
-
-        create_texture();
-        create_buffers();
-    }
+    HeightmapTile(std::vector<float> pixels, uint32_t width, uint32_t height, double min_lon, double min_lat, double max_lon, double max_lat);
+    ~HeightmapTile();
 
     void create_texture();
     void create_buffers();
     void draw_buffers();
 
-    bool contains_pos(glm::vec2 const& pos) const {
-        //return pos.x >= m_start.x && pos.x < m_end.x && pos.y <= m_start.y && pos.y > m_end.y;
-        return false;
+    bool contains_position(glm::vec2 const& pos) const;
+    std::optional<float> altitude_at_position(glm::vec2 const& pos) const;
+
+    inline GLuint texture() const {
+        return m_texture;
     }
 
-    float height_at_pos(glm::vec2 const& pos) const {
-        if(!contains_pos(pos))
-            return -1.f;
-
-        /*double fy = (pos.y - m_start.y) / (m_end.y - m_start.y);
-        double fx = (pos.x - m_start.x) / (m_end.x - m_start.x);
-
-        size_t x = static_cast<size_t>((1.0 - fx) * (m_width - 1));
-        size_t y = static_cast<size_t>((1.0 - fy) * (m_height - 1));
-
-        return m_pixels.at(y * m_width + x);*/
-
-        return -1.f;
-    }
-
-    GLuint m_texture;
 private:
+    GLuint m_texture = 0;
     GLuint m_vao = 0, m_vbo = 0;
+
     uint32_t m_width, m_height;
 
     std::vector<float> m_pixels;
     glm::vec2 m_min_min, m_min_max, m_max_min, m_max_max;
 };
 
-class Heightmap : public RenderElement {
+class Heightmap : public RenderElement, public ViewportProvider {
 public:
     Heightmap(std::string path);
 
@@ -132,17 +112,29 @@ public:
     virtual void draw_scene(Viewport& viewport, InputState& input) override;
     virtual void draw_ui(InputState& input) override;
 
-    inline constexpr uint32_t get_tile_index(uint32_t x, uint32_t y) const {
-        return x * (m_info.height / m_info.tile_height) + y;
+    virtual void on_attach(RenderContext& context) override;
+
+    virtual int get_z_index() const {
+        return 2;
     }
 
-    std::optional<std::shared_ptr<HeightmapTile>> get_tile_at_position(glm::vec2 const& pos) const {
-        for(auto it = m_tiles.begin(); it != m_tiles.end(); it++) {
-            if(it->second->contains_pos(pos))
-                return it->second;
-        }
+    virtual bool remove() const {
+        return m_remove;
+    }
 
-        return {};
+    virtual std::pair<glm::vec2, glm::vec2> get_minmax_coord() const override {
+        return {
+            map_project({m_info.min_lon, m_info.min_lat}),
+            map_project({m_info.max_lon, m_info.max_lat})
+        };
+    }
+
+    std::optional<std::shared_ptr<HeightmapTile>> tile_at_position(const glm::vec2& pos) const;
+    std::optional<float> altitude_at_position(const glm::vec2& pos) const;
+    std::vector<float> altitude_graph(const Way& way) const;
+
+    inline constexpr uint32_t get_tile_index(uint32_t x, uint32_t y) const {
+        return x * (m_info.height / m_info.tile_height) + y;
     }
 
     std::pair<float, float> get_height_range() const {
@@ -171,5 +163,6 @@ private:
     non_volatile<std::string, "heightmap.mode"> m_current_mode;
 
     GLuint m_tile_ebo = 0;
+    bool m_remove = false;
 };
 

@@ -1,12 +1,19 @@
 #pragma once
 
+#include "glm/ext/vector_float4.hpp"
+#include "inputstate.hpp"
+#include "non_volatile.hpp"
+#include "renderutil.hpp"
 #include "viewport.hpp"
 
+#include <memory>
 #include <optional>
 #include <string>
 #include <string_view>
 #include <unordered_map>
 #include <vector>
+
+#include <imgui.h>
 
 #include <GL/glew.h>
 
@@ -146,11 +153,44 @@ enum WindingOrder {
     COUNTER_CLOCKWISE,
 };
 
-class Way : public BBox {
+class MapElement {
 public:
-    typedef uint64_t Id;
+    using Id = uint64_t;
 
-    Way(Id id) : m_nodes(), m_metadata(), m_id(id)
+    MapElement() = delete;
+
+    MapElement(Id id) 
+        : m_id(id)
+    {}
+
+    virtual void inspect(ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_None) const;
+    virtual std::string element_type() const = 0;
+
+    inline Id get_id() const {
+        return m_id;
+    }
+
+    inline void add_tag(std::string key, std::string value) {
+        m_tags[key] = std::move(value);
+    }
+
+    inline auto& get_tags() {
+        return m_tags;
+    }
+
+    inline const auto& get_tags() const {
+        return m_tags;
+    }
+
+protected:
+    Id m_id;
+    std::unordered_map<std::string, std::string> m_tags;
+};
+
+class Way : public MapElement, public BBox {
+public:
+    Way(Id id)
+        : MapElement(id), m_nodes(), m_metadata()
     {}
 
     Way(const Way &) = delete;
@@ -170,6 +210,12 @@ public:
     void draw_highlighted_buffers(float scale);
     void rebuild_vaos();
 
+    virtual void inspect(ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_None) const override;
+
+    virtual std::string element_type() const override {
+        return "way";
+    }
+
     inline void add_node(Node node) {
         increase_bbox(node.m_coord);
         m_nodes.push_back(node);
@@ -179,16 +225,8 @@ public:
         return m_nodes;
     }
 
-    inline auto get_id() const -> Id {
-        return m_id;
-    }
-
-    inline void add_tag(std::string key, std::string value) {
-        m_tags.insert({key, value});
-    }
-
-    inline auto& get_tags() {
-        return m_tags;
+    inline const auto& get_nodes() const {
+        return m_nodes;
     }
 
     auto parse_metadata() -> Metadata {
@@ -218,9 +256,6 @@ private:
 
     GLuint m_vao = 0, m_vbo = 0, m_ebo = 0;
 
-    Id m_id;
-
-    std::unordered_map<std::string, std::string> m_tags;
     std::optional<std::vector<GLuint>> m_indices = std::nullopt;
 };
 

@@ -90,18 +90,8 @@ void RenderContext::remove_elements() {
     });
 }
 
-void RenderContext::center_viewport() {
-    if(auto map = get_element<Map>())
-        center_viewport(*map);
-}
-
-void RenderContext::center_viewport(const Map& map) {
-    m_viewport = Viewport(map.get_minmax_coord());
-}
-
-void RenderContext::add_map(std::shared_ptr<Map> map) {
-    add_element(map);
-    center_viewport();
+void RenderContext::center_viewport(const ViewportProvider& provider) {
+    m_viewport = Viewport(provider.get_minmax_coord());
 }
 
 std::optional<std::unique_ptr<LoaderContext>> RenderContext::create_loader_context() {

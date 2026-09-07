@@ -242,17 +242,6 @@ bool Way::is_area() const {
     ) && m_nodes.front() == m_nodes.back();
 }
 
-static inline double cross_product_z(glm::dvec2 a, glm::dvec2 b) {
-    return a.x * b.y - a.y * b.x;
-}
-
-static inline bool is_point_in_triangle(glm::dvec2 p, glm::dvec2 a, glm::dvec2 b, glm::dvec2 c) {
-    glm::dvec2 ab = b - a, bc = c - b, ca = a - c;
-    glm::dvec2 ap = p - a, bp = p - b, cp = p - c;
-
-    return cross_product_z(ab, ap) <= 0.0f && cross_product_z(bc, bp) <= 0.0f && cross_product_z(ca, cp) <= 0.0f;
-}
-
 static inline GLuint get_index(const std::vector<GLuint>& indices, std::int64_t i) {
     return indices[(i + indices.size()) % indices.size()];
 }

@@ -2,6 +2,9 @@
 
 #include "map.hpp"
 #include "maptools.hpp"
+#include "way.hpp"
+
+#include <imgui.h>
 
 class Inspector : public MapTool {
 public:
@@ -9,7 +12,6 @@ public:
 
     virtual void draw_ui(Map &map, InputState& input) override;
     virtual void draw_scene(Map &map, Viewport& viewport, InputState& input) override;
-
 private:
     bool m_fixed = false;
 

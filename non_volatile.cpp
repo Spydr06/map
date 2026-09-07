@@ -69,6 +69,25 @@ std::optional<int> non_volatile_store::deserialize(const std::string& v) {
 }
 
 template<>
+std::string non_volatile_store::serialize(const size_t& value) {
+    return std::format("{}", value);
+}
+
+template<>
+std::optional<size_t> non_volatile_store::deserialize(const std::string& v) {
+    size_t value{};
+
+    const char *end = v.data() + v.size();
+    auto [ptr, err] = std::from_chars(v.data(), end, value);
+    if(err != std::errc{} || ptr != end) {
+        mlog::logln(mlog::ERROR, "parser error: value \"%s\" is not an unsigned integer.", v.c_str());
+        return std::nullopt;
+    }
+
+    return value;
+}
+
+template<>
 std::string non_volatile_store::serialize(const float& value) {
     return std::format("{}", value);
 }

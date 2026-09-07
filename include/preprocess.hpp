@@ -2,6 +2,7 @@
 
 #include "bbox.hpp"
 #include "map.hpp"
+#include "relation.hpp"
 
 #include <memory>
 #include <unordered_map>
@@ -48,6 +49,7 @@ struct PreData {
     std::shared_ptr<Map> m_map;
     std::unique_ptr<NodeCache> m_node_cache;
 
+    std::shared_ptr<Relation> m_current_rel;
     std::shared_ptr<Way> m_current_way;
 };
 

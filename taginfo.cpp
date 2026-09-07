@@ -148,10 +148,6 @@ CachedTag* Map::get_taginfo(const std::string& key, const std::string& value) {
         tag += "-" + param;
     }
 
-    if(key == "traffic_sign") {
-        mlog::logln(mlog::DEBUG, "sign: %s", tag.c_str());
-    }
-
     auto it = m_taginfo[key].find(tag);
     return it == m_taginfo[key].end() ? nullptr : &it->second;
 }

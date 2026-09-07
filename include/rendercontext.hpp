@@ -55,12 +55,11 @@ public:
 
     std::optional<std::unique_ptr<LoaderContext>> create_loader_context();
 
-    void center_viewport();
-    void center_viewport(const Map& map);
-    void add_map(std::shared_ptr<Map> map);
+    void center_viewport(const ViewportProvider& provider);
 
     inline void add_element(std::shared_ptr<RenderElement> element) {
         m_elements.insert(element);
+        element->on_attach(*this);
     }
 
     template<std::derived_from<RenderElement> T>

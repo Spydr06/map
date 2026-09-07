@@ -67,7 +67,9 @@ void RectangleSelect::draw_ui(Map& map, InputState& input) {
         ImGui::DragFloat2("End", reinterpret_cast<float*>(&range->m_end), sensitivity);
 
         ImGui::SeparatorText("Actions");
-        if(ImGui::Button("Clear"))
+
+        ImGui::SetNextItemShortcut(ImGuiKey_Escape);
+        if(ImGui::Button("Clear (ESC)"))
             m_range = std::nullopt;
 
         ImGui::SameLine();

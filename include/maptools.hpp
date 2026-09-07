@@ -1,9 +1,13 @@
 #pragma once
 
+#include "non_volatile.hpp"
 #include "renderutil.hpp"
 #include "viewport.hpp"
 #include "inputstate.hpp"
+#include "way.hpp"
 
+#include <atomic>
+#include <future>
 #include <glm/glm.hpp>
 #include <memory>
 
@@ -73,4 +77,3 @@ private:
 
     GLuint m_vbo = 0, m_vao = 0, m_ebo = 0;
 };
-

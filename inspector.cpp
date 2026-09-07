@@ -1,4 +1,7 @@
 #include "inspector.hpp"
+#include "heightmap.hpp"
+#include "main.hpp"
+#include "way.hpp"
 
 #include <imgui.h>
 #include <map.hpp>
@@ -41,41 +44,103 @@ void Inspector::draw_ui(Map& map, InputState& input) {
     }
 
     ImGui::SameLine();
-    if(ImGui::Button("Clear"))
+    ImGui::SetNextItemShortcut(ImGuiKey_Escape);
+    if(ImGui::Button("Clear (ESC)"))
         m_fixed = false;
     else if(!m_fixed)
         ImGui::EndDisabled();
 
-    if(m_selected_way) {
-        ImGui::Text("id: %lu", m_selected_way->get_id());
+    if(m_selected_way)
+        m_selected_way->inspect(ImGuiTreeNodeFlags_Framed);
 
-        ImGui::Separator();
+    ImGui::End();
+}
 
-        for(auto& [ key, value ] : m_selected_way->get_tags()) {
-            ImGui::Text("%s := %s", key.c_str(), value.c_str());
+void MapElement::inspect(ImGuiTreeNodeFlags flags) const {
+    if(ImGui::TreeNodeEx("Attributes", ImGuiTreeNodeFlags_DefaultOpen | flags)) {
+        if(ImGui::BeginTable("##inspect-attrs", 2, ImGuiTableFlags_Resizable | ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg)) {
+            ImGui::TableNextRow();
+            ImGui::TableNextColumn();
+            ImGui::Text("id");
+            ImGui::TableNextColumn();
+            ImGui::Text("%lu", get_id());
+
+            for(auto& [ key, value ] : get_tags()) {
+                ImGui::TableNextRow();
+
+                ImGui::TableNextColumn();
+                ImGui::Text("%s", key.c_str());
+                ImGui::TableNextColumn();
+                ImGui::Text("%s", value.c_str());
+            }
+
+            ImGui::EndTable();
         }
 
-        ImGui::Separator();
+        ImGui::TreePop();
+    }
 
-        for(auto& [ key, value ] : m_selected_way->get_tags()) {
-            for(auto* tag : map.get_taginfos(key, value)) {
+    if(ImGui::TreeNodeEx("Tag Information", flags)) {
+        const auto map = context->get_element<Map>();
+
+        for(const auto& [ key, value ] : get_tags()) {
+            for(auto* tag : map->get_taginfos(key, value)) {
                 tag->load_image();
                 ImVec2 size(tag->m_dimensions.x, tag->m_dimensions.y);
                 ImGui::Image((void*)(uintptr_t) tag->m_texture_id, size);
             }
         }
-    } 
 
-    /* for(const auto& way : map) {
-        auto& tags = way->get_tags();
-        if(tags.find("name") != tags.end()) {
-            if(ImGui::CollapsingHeader(std::format("{} {}", way->get_id(), tags["name"]).c_str(), ImGuiTreeNodeFlags_None)) {
+        ImGui::TreePop();
+    }
+}
 
+void Way::inspect(ImGuiTreeNodeFlags flags) const {
+    MapElement::inspect(flags);
+
+    if(ImGui::TreeNodeEx("Altitude Graph", ImGuiTreeNodeFlags_DefaultOpen | flags)) {
+        if(const auto heightmap = context->get_element<Heightmap>()) {
+            const auto points = heightmap->altitude_graph(*this);
+            if(points.empty())
+                ImGui::Text("Selection outside of heightmap.");
+            else {
+                ImGui::PlotLines("Altitude", points.data(), points.size(), 0, NULL, FLT_MAX, FLT_MAX, ImVec2(0.0f, 96.0f));
+
+                const auto [min, max] = std::minmax_element(points.begin(), points.end());
+                ImGui::Text("Minimum: %.1f [m]", *min);
+                ImGui::Text("Maximum: %.1f [m]", *max);
             }
         }
-    } */
+        else {
+            ImGui::Text("No heightmap loaded.");
+        }
 
-    ImGui::End();
+        ImGui::TreePop();
+    }
+}
+
+void Relation::inspect(ImGuiTreeNodeFlags flags) const {
+    MapElement::inspect(flags);
+
+    if(ImGui::TreeNodeEx("Referenced Ways", flags)) {
+        if(auto highlight = context->get_element<MapHighlight>()) {
+            auto map = context->get_element<Map>();
+            assert(map != nullptr);
+
+            if(ImGui::Button("Hightlight Ways")) {
+                for(auto& way : *map)  {
+                    if(m_ways.contains(way->get_id()))
+                        highlight->add_way(way);
+                }
+            }
+        }
+
+        for(const auto ref : m_ways) {
+            ImGui::Text("%lu", ref);
+        }
+        
+        ImGui::TreePop();
+    }
 }
 
 void Inspector::draw_scene(Map&, Viewport& viewport, InputState& input) {

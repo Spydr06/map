@@ -5,7 +5,12 @@
 
 #include <glm/vec2.hpp>
 
-class BBox {
+class ViewportProvider {
+public:
+    virtual auto get_minmax_coord() const -> std::pair<glm::vec2, glm::vec2> = 0;
+};
+
+class BBox : public ViewportProvider {
 public:
     BBox() 
         : m_min_coord(std::numeric_limits<float>::infinity()), m_max_coord(-std::numeric_limits<float>::infinity())
@@ -24,7 +29,7 @@ public:
         m_max_coord = minmax_coords.second;
     }
 
-    inline auto get_minmax_coord() const {
+    virtual auto get_minmax_coord() const -> std::pair<glm::vec2, glm::vec2> override {
         return std::make_pair(m_min_coord, m_max_coord);
     }
 

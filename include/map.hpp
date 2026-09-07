@@ -14,6 +14,7 @@
 
 #include "bvh.hpp"
 #include "inputstate.hpp"
+#include "relation.hpp"
 #include "renderutil.hpp"
 #include "maptools.hpp"
 #include "non_volatile.hpp"
@@ -88,6 +89,29 @@ public:
     GLuint m_texture_id;
 };
 
+class MapHighlight : public RenderElement {
+public:
+    MapHighlight();
+    ~MapHighlight() = default;
+
+    virtual void draw_scene(Viewport& viewport, InputState& input) override;
+    virtual void draw_ui(InputState& input) override;
+
+    virtual int get_z_index() const override {
+        return 6;
+    }
+
+    void add_way(std::shared_ptr<Way> way);
+
+private:
+    std::unique_ptr<Shader> m_shader;
+
+    std::unordered_map<Way::Id, std::shared_ptr<Way>> m_ways;
+    non_volatile<glm::vec4, "highlight.color"> m_color;
+    non_volatile<float, "highlight.weight"> m_weight;
+    non_volatile<bool, "highlight.show"> m_show;
+};
+
 class Map : public BBox, public RenderElement {
 public:
     Map();
@@ -104,6 +128,7 @@ public:
     virtual void draw_scene(Viewport& viewport, InputState& input) override;
     virtual void draw_ui(InputState& input) override;
     virtual void menu_item() override;
+    virtual void on_attach(RenderContext& context) override;
 
     inline void mark_removal() {
         m_remove = true;
@@ -113,9 +138,25 @@ public:
         return m_remove;
     }
 
+    virtual int get_z_index() const override {
+        return 5;
+    }
+
     inline void add_way(std::shared_ptr<Way> way) {
         assert(m_bvh);
         m_bvh->add_way(std::move(way));
+    }
+
+    inline void add_relation(std::shared_ptr<Relation> rel) {
+        m_relations[rel->get_id()] = std::move(rel);
+    }
+
+    inline auto& get_relations() {
+        return m_relations;
+    }
+
+    inline const auto& get_relations() const {
+        return m_relations;
     }
 
     inline auto get_max_bvh_depth() const -> std::size_t {
@@ -124,12 +165,6 @@ public:
 
     inline auto get_nearest_way(glm::vec2 coords) const -> std::pair<float, std::shared_ptr<Way>> {
         return m_bvh->get_nearest_way(coords, m_draw_priority);
-    }
-
-    std::unordered_map<std::string, std::unordered_map<std::string, CachedTag>> m_taginfo{};
-
-    inline auto set_heightmap(std::shared_ptr<Heightmap> heightmap) {
-        m_heightmap = heightmap;
     }
 
     inline void set_draw_priority(DrawPriority priority) {
@@ -168,13 +203,23 @@ public:
         return m_bvh->end();
     }
 
+    inline std::shared_ptr<Way> find_way(Way::Id id) const {
+        for(const auto& way : *m_bvh) {
+            if(way->get_id() == id)
+                return way;
+        } 
+
+        return nullptr;
+    }
+
+    std::unordered_map<std::string, std::unordered_map<std::string, CachedTag>> m_taginfo{};
 private:
     std::string m_source;
     
-    std::shared_ptr<Heightmap> m_heightmap = nullptr;
-
     std::unique_ptr<BVH> m_bvh;
     std::unique_ptr<Shader> m_shader;
+
+    std::unordered_map<uint32_t, std::shared_ptr<Relation>> m_relations;
 
     std::map<std::string, std::unique_ptr<MapTool>> m_tools;
     std::optional<std::string> m_selected_tool;
@@ -208,6 +253,10 @@ public:
 private:
     Progress m_loading_progress{};
     std::optional<std::future<std::expected<std::shared_ptr<Map>, int>>> m_loading_map;
+
+    std::optional<std::string> m_map_path;
+    std::optional<std::string> m_heightmap_path;
+    std::optional<std::string> m_taginfo_path;
 
     friend std::expected<std::shared_ptr<Map>, int> load_map(std::string, std::shared_ptr<Map>, std::unique_ptr<LoaderContext>, MapLoader*);
 };

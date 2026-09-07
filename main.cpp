@@ -11,6 +11,7 @@
 #include "map.hpp"
 #include "overlay.hpp"
 #include "preprocess.hpp"
+#include "query.hpp"
 #include "rendercontext.hpp"
 #include "renderutil.hpp"
 #include "screenshot.hpp"
@@ -146,8 +147,8 @@ auto main(int argc, char** argv) -> int {
 
     settings_store = std::make_shared<ini_store>(settings_path);
 
-    if(!osm_path && (taginfo_path || heightmap_path)) {
-        mlog::logln(mlog::ERROR, "Cannot load tag or heightmap information without an OSM map");
+    if(!osm_path && taginfo_path) {
+        mlog::logln(mlog::ERROR, "Cannot load tag information without an OSM map");
         usage(argv[1]);
     }
 
@@ -182,8 +183,6 @@ auto main(int argc, char** argv) -> int {
 
     glfwMakeContextCurrent(window);
     
-    //glfwSwapInterval(0);
-
     glewExperimental = GL_TRUE;
     if(GLenum err = glewInit()) {
         mlog::logln(mlog::ERROR, "OpenGL error: %s", glewGetErrorString(err));
@@ -215,6 +214,15 @@ auto main(int argc, char** argv) -> int {
 
     context = std::make_unique<RenderContext>(window, glm::vec2(**window_width, **window_height));
 
+    if(heightmap_path) {
+        auto heightmap = std::make_shared<Heightmap>(std::string(heightmap_path));
+        if(int err = heightmap->preprocess()) {
+            return err;
+        }
+
+        context->add_element(heightmap);
+    }
+
     std::shared_ptr<Map> map = nullptr;
     if(osm_path) {
         mlog::logln(mlog::INFO, "Preprocessing data...");
@@ -225,26 +233,19 @@ auto main(int argc, char** argv) -> int {
             return err;
         
         map->rebuild_vaos();
-        context->add_map(map);
+        context->add_element(map);
 
         if(int err; taginfo_path && (err = load_taginfo(taginfo_path, map))) {
             return err;
         }
 
-        if(heightmap_path) {
-            auto heightmap = std::make_shared<Heightmap>(std::string(heightmap_path));
-            if(int err = heightmap->preprocess()) {
-                return err;
-            }
-
-            map->set_heightmap(heightmap);
-        }
     }
 
     context->add_element(std::make_shared<MapLoader>());
     context->add_element(std::make_shared<MapView>());
     context->add_element(std::make_shared<Overlay>());
     context->add_element(std::make_shared<Console>());
+    context->add_element(std::make_shared<MapQuery>());
     context->add_element(std::make_shared<Help>());
 
     glfwSetWindowContentScaleCallback(window, [](GLFWwindow*, float xscale, float yscale) {
@@ -305,6 +306,8 @@ auto main(int argc, char** argv) -> int {
         *window_height = height;
         context->get_input_state().window_size = glm::vec2(width, height);
     });
+
+    glfwSetKeyCallback(window, ImGui_ImplGlfw_KeyCallback);
 
     while(!glfwWindowShouldClose(window)) {
         for(auto& timer : timers) {

@@ -3,6 +3,7 @@
 #include "preprocess.hpp"
 #include "rendercontext.hpp"
 #include "screenshot.hpp"
+#include "taginfo.hpp"
 #include "way.hpp"
 #include "log.hpp"
 #include "renderutil.hpp"
@@ -59,14 +60,56 @@ static const PresetTheme GRAYSCALE_THEME(
     glm::vec3(0.0, 0.0, 0.0)
 );
 
+static const MapTheme CLASSIC_THEME(
+    {
+        {Metadata::UNKNOWN, glm::vec4(0.3, 0.3, 0.3, 0.5)}, // unknown
+        {Metadata::HIGHWAY_MOTORWAY, glm::vec4(1.00, 0.32, 0.31, 1.0)}, // highway motorway
+        {Metadata::HIGHWAY_TRUNK, glm::vec4(1.00, 0.56, 0.31, 1.0)}, // highway trunk
+        {Metadata::HIGHWAY_PRIMARY, glm::vec4(1.00, 0.71, 0.31, 1.0)}, // highway primary
+        {Metadata::HIGHWAY_SECONDARY, glm::vec4(1.00, 0.87, 0.52, 1.0)}, // highway secondary
+        {Metadata::HIGHWAY_TERTIARY, glm::vec4(0.77, 0.77, 0.77, 1.0)}, // highway tertiary
+        {Metadata::HIGHWAY_UNCLASSIFIED, glm::vec4(0.70, 0.70, 0.70, 1.0)}, // highway unclassified
+        {Metadata::HIGHWAY_RESIDENTIAL, glm::vec4(0.77, 0.77, 0.77, 1.0)}, // highway residential
+        {Metadata::HIGHWAY_LIVING_STREET, glm::vec4(0.55, 0.75, 0.89, 1.0)}, // living street
+        {Metadata::HIGHWAY_SERVICE, glm::vec4(0.33, 0.33, 0.33, 1.0)}, // service
+        {Metadata::HIGHWAY_PEDESTRIAN, glm::vec4(0.33, 0.69, 0.55, 1.0)}, // pedestrian
+        {Metadata::HIGHWAY_TRACK, glm::vec4(0.48, 0.40, 0.30, 1.0)}, // track
+        {Metadata::HIGHWAY_BUSWAY, glm::vec4(0.32, 0.34, 0.55, 1.0)}, // busway
+        {Metadata::HIGHWAY_FOOTWAY, glm::vec4(0.50, 0.50, 0.50, 1.0)}, // footway
+        {Metadata::HIGHWAY_CYCLEWAY, glm::vec4(0.50, 0.40, 0.59, 1.0)}, // cycleway
+        {Metadata::FOOTWAY_SIDEWALK, glm::vec4(0.50, 0.50, 0.50, 1.0)}, // footway sidewalk
+        {Metadata::FOOTWAY_CROSSING, glm::vec4(1.0)}, // footway crossing
+
+        {Metadata::RAILWAY, glm::vec4(1.0)}, // railway
+        {Metadata::WATERWAY, glm::vec4(0.36, 0.49, 0.89, 1.0)}, // waterway
+        {Metadata::WATER, glm::vec4(0.36, 0.49, 0.89, 1.0)}, // lake
+
+        {Metadata::LANDUSE_AGRICULTURAL, glm::vec4(0.58, 0.75, 0.41, 1.0)}, // landuse agricultural
+        {Metadata::LANDUSE_FOREST, glm::vec4(0.24, 0.36, 0.22, 1.0)}, // landuse forest
+        {Metadata::LANDUSE_INDUSTRIAL, glm::vec4(0.89, 0.55, 0.62, 1.0)}, // landuse industrial
+        {Metadata::LANDUSE_RECREATIONAL, glm::vec4(0.58, 0.75, 0.41, 1.0)}, // landuse recreational
+        {Metadata::LANDUSE_TRANSPORT, glm::vec4(0.89, 0.55, 0.62, 1.0)}, // landuse transport
+        {Metadata::LANDUSE_COMMERCIAL, glm::vec4(0.89, 0.55, 0.62, 1.0)}, // landuse commercial
+        {Metadata::LANDUSE_RESIDENTIAL, glm::vec4(0.3, 0.3, 0.3, 0.5)}, // landuse residential
+
+        {Metadata::AERIALWAY_GONDOLA, glm::vec4(0.85, 0.28, 0.28, 1.0)}, // aerialway
+
+        {Metadata::POWER_LINE, glm::vec4(0.46, 0.18, 0.63, 1.0)}, // power lines
+        {Metadata::POWER_DISTRIBUTION, glm::vec4(0.46, 0.18, 0.63, 1.0)}, // power distribution
+    },
+    glm::vec3(0.0)
+);
+
 
 void Progress::draw_progress_bar() const {
     auto total = m_total.load();
     auto progress = m_progress.load();
     auto frac = progress / total; 
 
-    std::string s = std::format("{:.1f} of {:.1f} {} ({:.1f}%)", progress, total, m_unit, frac * 100.0f);
+    std::string s = std::format("{:.1f}%", frac * 100.0f);
     ImGui::ProgressBar(frac, ImVec2(-FLT_MIN, 0), s.c_str());
+
+    ImGui::Text("%.1f of %.1f %s", progress, total, m_unit.c_str());
 }
 
 void Progress::update(float progress) {
@@ -119,10 +162,12 @@ void Map::rebuild_vaos() {
     mlog::logln(mlog::INFO, "done.");
 }
 
-void Map::draw_scene(Viewport& viewport, InputState& input) {
-    if(m_heightmap != nullptr)
-        m_heightmap->draw_scene(viewport, input);
+void Map::on_attach(RenderContext& context) {
+    context.center_viewport(*this);
+    context.add_element(std::make_shared<MapHighlight>());
+}
 
+void Map::draw_scene(Viewport& viewport, InputState& input) {
     auto view_box = viewport.viewport_bbox();
 
     m_shader->use();
@@ -161,16 +206,13 @@ void Map::menu_item() {
 }
 
 void Map::draw_ui(InputState& input) {
-    if(m_heightmap != nullptr)
-        m_heightmap->draw_ui(input);
-
     ImGui::Begin("View");
 
     auto [min, max] = get_minmax_coord();
     ImGui::Text("coordinate system: (%f, %f) to (%f, %f)", min.x, min.y, max.x, max.y);
 
     if(ImGui::Button("Center Viewport")) {
-        context->center_viewport();
+        context->center_viewport(*this);
     }
 
     ImGui::Separator();
@@ -236,13 +278,26 @@ void MapLoader::menu_item() {
 
         ImGui::BeginDisabled(m_loading_map.has_value() || map != nullptr);
 
-        if(ImGui::MenuItem("Map [osm/xml]")) {
+        auto menu_item = [](const char *name, const std::optional<std::string>& path) {
+            if(auto p = path)
+                return ImGui::MenuItem(std::format("{} - \"{}\"", name, *p).c_str());
+            return ImGui::MenuItem(name);
+        };
+
+        auto path_basename = [](std::string path) {
+            if(auto start = path.rfind('/'); start != std::string::npos)
+                path.erase(0, start + 1);
+            return path;
+        };
+
+        if(menu_item("Map [osm/xml]", m_map_path)) {
             if(auto osm_path = file_dialog("osm;xml")) {
                 mlog::logln(mlog::INFO, "Loading OSM Map '%s'...", osm_path->c_str());
                 auto map = std::make_shared<Map>();
 
                 if(auto loader_context = context->create_loader_context())
                     m_loading_map = std::async(&load_map, *osm_path, map, std::move(*loader_context), this);
+                m_map_path = path_basename(std::move(*osm_path));
             }
         }
 
@@ -250,24 +305,41 @@ void MapLoader::menu_item() {
 
         ImGui::BeginDisabled(!map);
 
-        if(ImGui::MenuItem("Tag Info [xml]")) {
-            if(auto osm_path = file_dialog("xml")) {
-                mlog::logln(mlog::INFO, "Loading Tag-Info '%s'...", osm_path->c_str());
+        if(menu_item("Tag Info [xml]", m_taginfo_path)) {
+            if(auto taginfo_path = file_dialog("xml")) {
+                mlog::logln(mlog::INFO, "Loading Tag-Info '%s'...", taginfo_path->c_str());
 
-            }
-        }
-
-        if(ImGui::MenuItem("Heightmap [tif]")) {
-            if(auto hm_path = file_dialog("tif,tiff")) {
-                mlog::logln(mlog::INFO, "Loading Heightmap '%s'...", hm_path->c_str());
-
-                auto heightmap = std::make_shared<Heightmap>(*hm_path);
-                heightmap->preprocess();
-                map->set_heightmap(heightmap);
+                if(int err = load_taginfo(taginfo_path->c_str(), map))
+                    mlog::logln(mlog::ERROR, "Could not load tag information from '%s': %s", taginfo_path->c_str(), std::strerror(err));
+                else
+                    m_taginfo_path = path_basename(std::move(*taginfo_path));
             }
         }
 
         ImGui::EndDisabled();
+
+        bool heightmap_loaded = context->get_element<Heightmap>() != nullptr;
+        ImGui::BeginDisabled(heightmap_loaded);
+
+        if(m_heightmap_path && heightmap_loaded)
+            m_heightmap_path = std::nullopt;
+
+        if(menu_item("Heightmap [tif]", m_heightmap_path)) {
+            if(auto hm_path = file_dialog("tif,tiff")) {
+                mlog::logln(mlog::INFO, "Loading Heightmap '%s'...", hm_path->c_str());
+
+                auto heightmap = std::make_shared<Heightmap>(*hm_path);
+                if(int err = heightmap->preprocess())
+                    mlog::logln(mlog::ERROR, "Could not load heightmap from \"%s\": %s", hm_path->c_str(), std::strerror(err));
+                else {
+                    context->add_element(heightmap);
+                    m_heightmap_path = path_basename(std::move(*hm_path));
+                }
+            }
+        }
+
+        ImGui::EndDisabled();
+
         ImGui::EndMenu();
     }
 
@@ -283,10 +355,12 @@ void MapLoader::draw_ui(InputState& input) {
             if(auto result = loading->get(); result.has_value()) {
                 mlog::logln(mlog::INFO, "loading done!");
                 (*result)->rebuild_vaos();
-                context->add_map(*result);
+                context->add_element(*result);
+                context->center_viewport(**result);
             }
             else {
                 mlog::logln(mlog::ERROR, "Error loading map: \"%s\"", std::strerror(result.error()));
+                m_map_path = std::nullopt;
             }
             m_loading_map = std::nullopt;
         }
@@ -355,50 +429,11 @@ const vec4 s_secundary = vec4(0.369,0.329,0.557, 1.0);
 const vec4 s_foliage = s_trans;
 */
 
-
-/*const vec4 c_Colormap[] = vec4[](
-    vec4(0.3, 0.3, 0.3, 0.5), // unknown
-    vec4(1.00, 0.32, 0.31, 1.0), // highway motorway
-    vec4(1.00, 0.56, 0.31, 1.0), // highway trunk
-    vec4(1.00, 0.71, 0.31, 1.0), // highway primary
-    vec4(1.00, 0.87, 0.52, 1.0), // highway secondary
-    vec4(0.77, 0.77, 0.77, 1.0), // highway tertiary
-    vec4(0.70, 0.70, 0.70, 1.0), // highway unclassified
-    vec4(0.77, 0.77, 0.77, 1.0), // highway residential
-    vec4(0.55, 0.75, 0.89, 1.0), // living street
-    vec4(0.33, 0.33, 0.33, 1.0), // service
-    vec4(0.33, 0.69, 0.55, 1.0), // pedestrian
-    vec4(0.48, 0.40, 0.30, 1.0), // track
-    vec4(0.32, 0.34, 0.55, 1.0), // busway
-    vec4(0.50, 0.50, 0.50, 1.0), // footway
-    vec4(0.50, 0.40, 0.59, 1.0), // cycleway
-    vec4(0.50, 0.50, 0.50, 1.0), // footway sidewalk
-    vec4(1.0), // footway crossing
-
-    vec4(1.0), // railway
-    vec4(0.36, 0.49, 0.89, 1.0), // waterway
-    vec4(0.36, 0.49, 0.89, 1.0), // lake
-
-    vec4(0.58, 0.75, 0.41, 1.0), // landuse agricultural
-    vec4(0.24, 0.36, 0.22, 1.0), // landuse forest
-    vec4(0.89, 0.55, 0.62, 1.0), // landuse industrial
-    vec4(0.58, 0.75, 0.41, 1.0), // landuse recreational
-    vec4(0.89, 0.55, 0.62, 1.0), // landuse transport
-    vec4(0.89, 0.55, 0.62, 1.0), // landuse commercial
-    vec4(0.3, 0.3, 0.3, 0.5), // landuse residential
-    
-    vec4(0.85, 0.28, 0.28, 1.0), // aerialway
-
-    vec4(0.46, 0.18, 0.63, 1.0), // power lines
-    vec4(0.46, 0.18, 0.63, 1.0), // power distribution
-
-    vec4(1.0, 0.0, 1.0, 1.0)
-);*/
-
 void MapView::load_presets() {
     m_presets["Navy"] = std::make_shared<PresetTheme>(NAVY_THEME);
     m_presets["Sage"] = std::make_shared<PresetTheme>(SAGE_THEME);
     m_presets["Grayscale"] = std::make_shared<PresetTheme>(GRAYSCALE_THEME);
+    m_presets["Classic"] = std::make_shared<MapTheme>(CLASSIC_THEME);
 
     if(m_presets.find(m_theme) == m_presets.end()) {
         mlog::logln(mlog::ERROR, "invalid theme \"%s\".", m_theme->c_str());
@@ -446,6 +481,100 @@ void MapView::draw_ui(InputState& input) {
         auto class_ = Metadata::Classification(i);
 
         ImGui::ColorEdit4(Metadata::classification_name(class_)->c_str(), reinterpret_cast<float*>(&(**theme)[class_]));
+    }
+
+    ImGui::End();
+}
+
+MapHighlight::MapHighlight()
+    : m_ways{}, m_color{1.0f, 0.3f, 0.3f, 1.0f}, m_weight{2.0f}, m_show{true}
+{
+    auto vertex_source = std::ifstream("shaders/map_highlight_vertex.glsl");
+    auto fragment_source = std::ifstream("shaders/map_fragment.glsl");
+    if(vertex_source.bad() || fragment_source.bad()) {
+        mlog::logln(mlog::ERROR, "Shader error: Shader file not found");
+        std::exit(1);
+    }
+
+    m_shader = std::make_unique<Shader>(vertex_source, fragment_source);
+    if(auto err = m_shader->get_error()) {
+        mlog::logln(mlog::ERROR, "Shader error: %s", err->c_str());
+        std::exit(1);
+    }
+}
+
+void MapHighlight::add_way(std::shared_ptr<Way> way) {
+    m_ways[way->get_id()] = way;
+}
+
+void MapHighlight::draw_scene(Viewport& viewport, InputState& input) {
+    if(m_show && !m_ways.empty()) {
+        m_shader->use();
+        m_shader->upload_uniform("u_Color", *m_color);
+        viewport.upload_uniforms(*m_shader, input.window_size);
+
+        auto view = context->get_element<MapView>();
+        view->get_theme()->use(*m_shader);
+
+        auto scale = viewport.get_scale_factor();
+
+        for(auto [_, way] : m_ways) {
+            way->draw_buffers(scale * m_weight);
+        }
+    }
+}
+
+void MapHighlight::draw_ui(InputState& input) {
+    ImGui::Begin("Highlight");
+
+    bool show = m_show;
+    if(ImGui::Checkbox("Show Highlights##hl", &show))
+        m_show = !m_show;
+
+    glm::vec4 color = m_color;
+    ImGui::ColorEdit4("Color##hl", reinterpret_cast<float*>(&color));
+    if(color != m_color)
+        m_color = color;
+
+    float weight = m_weight;
+    ImGui::SliderFloat("Weight##hl", &weight, 1.0f, 10.0f);
+    if(weight != m_weight)
+        m_weight = weight;
+
+    if(ImGui::Button("Remove All##hl")) {
+        m_ways.clear();
+    }
+
+    ImGui::Separator();
+
+    if(m_ways.empty()) {
+        ImGui::Text("No ways highlighted.");
+    }
+    else {
+        std::optional<Way::Id> remove = std::nullopt;
+        for(const auto& [id, way] : m_ways) {
+            ImGui::PushID(static_cast<void*>(way.get()));
+
+            auto& tags = way->get_tags();
+            bool node;
+            if(tags.contains("name"))
+                node = ImGui::TreeNode("##hl-way", "%s: %lu, \"%s\"", way->element_type().c_str(), way->get_id(), tags["name"].c_str());
+            else
+                node = ImGui::TreeNode("##hl-way", "%s: %lu", way->element_type().c_str(), way->get_id());
+
+            if(node) {
+                if(ImGui::Button("Remove"))
+                    remove = id;
+
+                way->inspect();
+                ImGui::TreePop();
+            }
+
+            ImGui::PopID();
+        }
+
+        if(remove != std::nullopt)
+            m_ways.erase(*remove);
     }
 
     ImGui::End();

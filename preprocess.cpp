@@ -52,11 +52,19 @@ static void XMLCALL enter_element(void* user_data, const XML_Char* name, const X
 
         data->m_current_way->add_node(node);
     }
-    else if(data->m_current_way != nullptr && std::memcmp(name, "tag", 3) == 0) {
-        assert(atts[4] == nullptr && atts[0][0] == 'k' && atts[2][0] == 'v');
-        auto* key = atts[1];
-        auto* value = atts[3]; 
-        data->m_current_way->add_tag(key, value);
+    else if(std::memcmp(name, "tag", 3) == 0) {
+        if(data->m_current_way) {
+            assert(atts[4] == nullptr && atts[0][0] == 'k' && atts[2][0] == 'v');
+            auto* key = atts[1];
+            auto* value = atts[3]; 
+            data->m_current_way->add_tag(key, value);
+        }
+        else if(data->m_current_rel) {
+            assert(atts[4] == nullptr && atts[0][0] == 'k' && atts[2][0] == 'v');
+            auto* key = atts[1];
+            auto* value = atts[3]; 
+            data->m_current_rel->add_tag(key, value);
+        }
     }
     else if(std::memcmp(name, "bounds", 5) == 0) {
         const XML_Char *min_lon = nullptr, *max_lon = nullptr, *min_lat = nullptr, *max_lat = nullptr;
@@ -82,6 +90,28 @@ static void XMLCALL enter_element(void* user_data, const XML_Char* name, const X
 
         data->m_map->init_bvh(std::make_pair(min, max), 16);
     }
+    else if(std::memcmp(name, "relation", 8) == 0) {
+        const XML_Char* id = nullptr;
+        for(int i = 0; atts[i]; i += 2) {
+            if(std::memcmp(atts[i], "id", 2) == 0)
+                id = atts[i + 1];
+        }
+
+        data->m_current_rel = std::make_shared<Relation>(std::stoul(id));
+    }
+    else if(data->m_current_rel && std::memcmp(name, "member", 6) == 0) {
+        const XML_Char *type = nullptr, *ref = nullptr;
+        for(int i = 0; atts[i]; i += 2) {
+            if(std::memcmp(atts[i], "type", 4) == 0)
+                type = atts[i + 1];
+            else if(std::memcmp(atts[i], "ref", 3) == 0)
+                ref = atts[i + 1];
+        }
+
+        if(std::strcmp(type, "way") == 0) {
+            data->m_current_rel->add_way(std::stoul(ref));
+        }
+    }
 }
 
 static void XMLCALL leave_element(void* user_data, const XML_Char* name) {
@@ -100,6 +130,12 @@ static void XMLCALL leave_element(void* user_data, const XML_Char* name) {
 
         data->m_map->add_way(std::move(data->m_current_way));
         data->m_current_way = nullptr;
+    }
+    if(std::memcmp(name, "relation", 8) == 0) {
+        assert(data->m_current_rel != nullptr);
+
+        data->m_map->add_relation(std::move(data->m_current_rel));
+        data->m_current_rel = nullptr;
     }
 }
 
